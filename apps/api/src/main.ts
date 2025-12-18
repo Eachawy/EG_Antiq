@@ -5,7 +5,6 @@ import { AppModule } from './app.module';
 import { config } from './config';
 import { logger } from '@packages/logger';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
-import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {

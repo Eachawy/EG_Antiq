@@ -13,7 +13,7 @@ export class HealthController {
   @HealthCheck()
   check(): Promise<HealthCheckResult> {
     return this.health.check([
-      async () => ({ status: 'ok' as const, timestamp: new Date().toISOString() }),
+      () => ({ api: { status: 'up' as const, timestamp: new Date().toISOString() } }),
     ]);
   }
 
@@ -26,7 +26,8 @@ export class HealthController {
           await this.prisma.$queryRaw`SELECT 1`;
           return { database: { status: 'up' as const } };
         } catch (error) {
-          return { database: { status: 'down' as const, message: error.message } };
+          const message = error instanceof Error ? error.message : 'Unknown error';
+          return { database: { status: 'down' as const, message } };
         }
       },
     ]);

@@ -6,7 +6,8 @@
     "paths": {
       "@packages/*": ["../../packages/*/src"],
       "@app/*": ["../*/src"]
-    }
+    },
+    "strictPropertyInitialization": false
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "**/*.spec.ts"]

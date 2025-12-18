@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../common/services/prisma.service';
 import { UnauthorizedError, BusinessError } from '@packages/common';
 import { config } from '../../config';
@@ -129,9 +129,8 @@ export class AuthService {
    */
   async refreshAccessToken(refreshToken: string): Promise<{ accessToken: string }> {
     // Verify refresh token
-    let payload: any;
     try {
-      payload = this.jwtService.verify(refreshToken);
+      this.jwtService.verify(refreshToken);
     } catch (error) {
       throw new UnauthorizedError('Invalid refresh token');
     }

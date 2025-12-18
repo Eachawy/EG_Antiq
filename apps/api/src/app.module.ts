@@ -11,6 +11,13 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { OrganizationsModule } from './modules/organizations/organizations.module';
 import { HealthModule } from './modules/health/health.module';
+import { MonumentsModule } from './modules/monuments/monuments.module';
+import { ErasModule } from './modules/eras/eras.module';
+import { DynastiesModule } from './modules/dynasties/dynasties.module';
+import { MonumentTypesModule } from './modules/monument-types/monument-types.module';
+import { DescriptionMonumentsModule } from './modules/description-monuments/description-monuments.module';
+import { MonumentsEraModule } from './modules/monuments-era/monuments-era.module';
+import { GalleryModule } from './modules/gallery/gallery.module';
 
 // Database
 import { PrismaService } from './common/services/prisma.service';
@@ -39,6 +46,15 @@ import { PrismaService } from './common/services/prisma.service';
     UsersModule,
     OrganizationsModule,
     HealthModule,
+
+    // Monument modules
+    MonumentsModule,
+    ErasModule,
+    DynastiesModule,
+    MonumentTypesModule,
+    DescriptionMonumentsModule,
+    MonumentsEraModule,
+    GalleryModule,
   ],
   providers: [PrismaService],
 })
