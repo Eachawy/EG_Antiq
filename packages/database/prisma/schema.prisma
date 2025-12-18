@@ -1,0 +1,279 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// IDENTITY DOMAIN
+// ============================================
+
+model User {
+  id             String      @id @default(uuid()) @db.Uuid
+  email          String      @unique @db.VarChar(255)
+  passwordHash   String      @db.VarChar(255)
+  firstName      String      @db.VarChar(100)
+  lastName       String      @db.VarChar(100)
+  status         UserStatus  @default(ACTIVE)
+  emailVerified  Boolean     @default(false)
+
+  // Multi-tenancy
+  organizationId String       @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  // RBAC
+  roles          UserRole[]
+
+  // Audit fields
+  createdAt      DateTime  @default(now()) @db.Timestamptz
+  updatedAt      DateTime  @updatedAt @db.Timestamptz
+  deletedAt      DateTime? @db.Timestamptz
+  createdBy      String?   @db.Uuid
+  updatedBy      String?   @db.Uuid
+
+  // Optimistic locking
+  version        Int       @default(1)
+
+  // Relations
+  sessions       Session[]
+  refreshTokens  RefreshToken[]
+  auditLogs      AuditLog[]
+  notifications  Notification[]
+
+  @@index([organizationId])
+  @@index([email])
+  @@index([status])
+  @@map("users")
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+  DEACTIVATED
+}
+
+model Session {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @db.Uuid
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token          String   @unique @db.VarChar(255)
+  expiresAt      DateTime @db.Timestamptz
+  ipAddress      String?  @db.VarChar(45)
+  userAgent      String?  @db.Text
+  createdAt      DateTime @default(now()) @db.Timestamptz
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model RefreshToken {
+  id             String    @id @default(uuid()) @db.Uuid
+  userId         String    @db.Uuid
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token          String    @unique @db.VarChar(255)
+  expiresAt      DateTime  @db.Timestamptz
+  isRevoked      Boolean   @default(false)
+  createdAt      DateTime  @default(now()) @db.Timestamptz
+  revokedAt      DateTime? @db.Timestamptz
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+// ============================================
+// ORGANIZATION DOMAIN
+// ============================================
+
+model Organization {
+  id             String              @id @default(uuid()) @db.Uuid
+  name           String              @db.VarChar(255)
+  slug           String              @unique @db.VarChar(255)
+  status         OrganizationStatus  @default(ACTIVE)
+  plan           String              @default("FREE") @db.VarChar(50)
+
+  // Settings (JSONB for flexibility)
+  settings       Json                @default("{}")
+
+  // Audit fields
+  createdAt      DateTime  @default(now()) @db.Timestamptz
+  updatedAt      DateTime  @updatedAt @db.Timestamptz
+  deletedAt      DateTime? @db.Timestamptz
+  createdBy      String?   @db.Uuid
+  updatedBy      String?   @db.Uuid
+  version        Int       @default(1)
+
+  // Relations
+  users          User[]
+  roles          Role[]
+  auditLogs      AuditLog[]
+
+  @@index([slug])
+  @@index([status])
+  @@map("organizations")
+}
+
+enum OrganizationStatus {
+  ACTIVE
+  SUSPENDED
+  TRIAL
+  CANCELLED
+}
+
+// ============================================
+// PERMISSIONS DOMAIN
+// ============================================
+
+model Role {
+  id             String   @id @default(uuid()) @db.Uuid
+  name           String   @db.VarChar(100)
+  description    String?  @db.Text
+  isSystem       Boolean  @default(false)
+
+  // Multi-tenancy
+  organizationId String       @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  // Permissions (many-to-many)
+  permissions    RolePermission[]
+
+  // Users with this role
+  users          UserRole[]
+
+  // Audit fields
+  createdAt      DateTime  @default(now()) @db.Timestamptz
+  updatedAt      DateTime  @updatedAt @db.Timestamptz
+  deletedAt      DateTime? @db.Timestamptz
+  version        Int       @default(1)
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@map("roles")
+}
+
+model Permission {
+  id             String           @id @default(uuid()) @db.Uuid
+  resource       String           @db.VarChar(100)
+  action         String           @db.VarChar(100)
+  description    String?          @db.Text
+
+  // Roles with this permission
+  roles          RolePermission[]
+
+  createdAt      DateTime @default(now()) @db.Timestamptz
+
+  @@unique([resource, action])
+  @@index([resource])
+  @@map("permissions")
+}
+
+// Join table for User-Role many-to-many
+model UserRole {
+  userId         String   @db.Uuid
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roleId         String   @db.Uuid
+  role           Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  assignedAt     DateTime @default(now()) @db.Timestamptz
+  assignedBy     String?  @db.Uuid
+
+  @@id([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+  @@map("user_roles")
+}
+
+// Join table for Role-Permission many-to-many
+model RolePermission {
+  roleId         String     @db.Uuid
+  role           Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permissionId   String     @db.Uuid
+  permission     Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  assignedAt     DateTime @default(now()) @db.Timestamptz
+
+  @@id([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
+// ============================================
+// AUDIT DOMAIN
+// ============================================
+
+model AuditLog {
+  id             String       @id @default(uuid()) @db.Uuid
+
+  // Multi-tenancy
+  organizationId String       @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  // Actor
+  userId         String @db.Uuid
+  user           User   @relation(fields: [userId], references: [id])
+
+  // Action details
+  action         String @db.VarChar(255)
+  resource       String @db.VarChar(100)
+  resourceId     String @db.Uuid
+
+  // Changes (JSONB)
+  changesBefore  Json?
+  changesAfter   Json?
+
+  // Request context
+  ipAddress      String  @db.VarChar(45)
+  userAgent      String? @db.Text
+  correlationId  String  @db.VarChar(255)
+
+  timestamp      DateTime @default(now()) @db.Timestamptz
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([action])
+  @@index([resourceId])
+  @@index([timestamp])
+  @@index([correlationId])
+  @@map("audit_logs")
+}
+
+// ============================================
+// NOTIFICATIONS DOMAIN
+// ============================================
+
+model Notification {
+  id             String           @id @default(uuid()) @db.Uuid
+  userId         String           @db.Uuid
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type           NotificationType
+  title          String           @db.VarChar(255)
+  message        String           @db.Text
+  data           Json?
+
+  isRead         Boolean   @default(false)
+  readAt         DateTime? @db.Timestamptz
+
+  createdAt      DateTime @default(now()) @db.Timestamptz
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  INFO
+  WARNING
+  ERROR
+  SUCCESS
+}
