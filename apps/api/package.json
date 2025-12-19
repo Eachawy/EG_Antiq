@@ -3,10 +3,12 @@
   "version": "1.0.0",
   "scripts": {
     "build": "nest build",
+    "clean": "rm -rf ../../dist",
     "dev": "nest start --watch",
-    "start": "node dist/main",
+    "start": "cd ../.. && NODE_PATH=apps/api/node_modules node dist/main",
     "start:debug": "nest start --debug --watch",
-    "start:prod": "node dist/main"
+    "start:prod": "npx prisma db push --skip-generate && cd ../.. && NODE_PATH=apps/api/node_modules node dist/main",
+    "prisma:migrate": "npx prisma db push"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.0",

@@ -22,7 +22,7 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "outDir": "./dist",
+    "outDir": "../../dist",
     "baseUrl": "./",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
