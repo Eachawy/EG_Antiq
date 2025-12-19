@@ -1,0 +1,141 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// MONUMENTS DOMAIN
+// ============================================
+
+model Era {
+  id         Int       @id @default(autoincrement())
+  nameAr     String    @map("name_ar") @db.VarChar
+  nameEn     String    @map("name_en") @db.VarChar
+  dateFrom   String    @map("date_from") @db.VarChar
+  dateTo     String    @map("date_to") @db.VarChar
+  hijriFrom  String    @map("hijri_from") @db.VarChar
+  hijriTo    String    @map("hijri_to") @db.VarChar
+  createdAt  DateTime? @default(now()) @map("created_at") @db.Timestamp
+
+  // Relations
+  dynasties            Dynasty[]
+  monuments            Monument[]
+  monumentsEras        MonumentEra[]
+  galleries            Gallery[]
+  descriptionMonuments DescriptionMonument[]
+
+  @@map("eras")
+}
+
+model Dynasty {
+  id         Int       @id @default(autoincrement())
+  nameAr     String    @map("name_ar") @db.VarChar
+  nameEn     String    @map("name_en") @db.VarChar
+  eraId      Int       @map("era_id")
+  dateFrom   String    @map("date_from") @db.VarChar
+  dateTo     String    @map("date_to") @db.VarChar
+  hijriFrom  String    @map("hijri_from") @db.VarChar
+  hijriTo    String    @map("hijri_to") @db.VarChar
+  createdAt  DateTime? @default(now()) @map("created_at") @db.Timestamp
+
+  // Relations
+  era                  Era                   @relation(fields: [eraId], references: [id])
+  monuments            Monument[]
+  galleries            Gallery[]
+  descriptionMonuments DescriptionMonument[]
+
+  @@map("dynasty")
+}
+
+model MonumentType {
+  id         Int       @id @default(autoincrement())
+  nameAr     String    @map("name_ar") @db.VarChar
+  nameEn     String    @map("name_en") @db.VarChar
+  createdAt  DateTime? @default(now()) @map("created_at") @db.Timestamp
+
+  // Relations
+  monuments            Monument[]
+  monumentsEras        MonumentEra[]
+  galleries            Gallery[]
+  descriptionMonuments DescriptionMonument[]
+
+  @@map("monuments_type")
+}
+
+model Monument {
+  id                  Int       @id @default(autoincrement())
+  monumentNameAr      String    @map("monument_name_ar") @db.VarChar
+  monumentNameEn      String    @map("monument_name_en") @db.VarChar
+  monumentBiographyAr String    @map("monument_biography_ar") @db.VarChar
+  monumentBiographyEn String    @map("monument_biography_en") @db.VarChar
+  lat                 String    @db.VarChar
+  lng                 String    @db.VarChar
+  image               String    @db.VarChar
+  mDate               String    @map("m_date") @db.VarChar
+  monumentsTypeId     Int       @map("monuments_type_id")
+  eraId               Int       @map("era_id")
+  dynastyId           Int       @map("dynasty_id")
+  zoom                String    @db.VarChar
+  center              String    @db.VarChar
+  createdAt           DateTime? @default(now()) @map("created_at") @db.Timestamp
+
+  // Relations
+  monumentType MonumentType @relation(fields: [monumentsTypeId], references: [id])
+  era          Era          @relation(fields: [eraId], references: [id])
+  dynasty      Dynasty      @relation(fields: [dynastyId], references: [id])
+  galleries    Gallery[]
+
+  @@map("monuments")
+}
+
+model MonumentEra {
+  id               Int       @id @default(autoincrement())
+  eraId            Int       @map("era_id")
+  monumentsTypeId  Int       @map("monuments_type_id")
+  createdAt        DateTime? @default(now()) @map("created_at") @db.Timestamp
+
+  // Relations
+  era          Era          @relation(fields: [eraId], references: [id])
+  monumentType MonumentType @relation(fields: [monumentsTypeId], references: [id])
+
+  @@map("monuments_era")
+}
+
+model Gallery {
+  id               Int       @id @default(autoincrement())
+  galleryPath      String    @map("gallery_path") @db.VarChar
+  dynastyId        Int       @map("dynasty_id")
+  eraId            Int       @map("era_id")
+  monumentsTypeId  Int       @map("monuments_type_id")
+  monumentsId      Int       @map("monuments_id")
+  createdAt        DateTime? @default(now()) @map("created_at") @db.Timestamp
+
+  // Relations
+  dynasty      Dynasty      @relation(fields: [dynastyId], references: [id])
+  era          Era          @relation(fields: [eraId], references: [id])
+  monumentType MonumentType @relation(fields: [monumentsTypeId], references: [id])
+  monument     Monument     @relation(fields: [monumentsId], references: [id])
+
+  @@map("gallery")
+}
+
+model DescriptionMonument {
+  id               Int       @id @default(autoincrement())
+  descriptionAr    String    @map("description_ar") @db.VarChar
+  descriptionEn    String    @map("description_en") @db.VarChar
+  eraId            Int       @map("era_id")
+  monumentsTypeId  Int       @map("monuments_type_id")
+  dynastyId        Int       @map("dynasty_id")
+  createdAt        DateTime? @default(now()) @map("created_at") @db.Timestamp
+
+  // Relations
+  era          Era          @relation(fields: [eraId], references: [id])
+  monumentType MonumentType @relation(fields: [monumentsTypeId], references: [id])
+  dynasty      Dynasty      @relation(fields: [dynastyId], references: [id])
+
+  @@map("description_monuments")
+}

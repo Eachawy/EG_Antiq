@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/services/prisma.service';
-import { NotFoundError } from '@packages/common';
+import { NotFoundError } from '../../common/errors/base.error';
 import { CreateDescriptionMonumentDto } from './dto/create-description-monument.dto';
 import { UpdateDescriptionMonumentDto } from './dto/update-description-monument.dto';
 

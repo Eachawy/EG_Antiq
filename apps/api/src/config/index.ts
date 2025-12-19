@@ -9,31 +9,12 @@ const configSchema = z.object({
 
   // Database
   DATABASE_URL: z.string().url(),
-  DATABASE_READ_REPLICA_URL: z.string().url().optional(),
-
-  // Redis
-  REDIS_URL: z.string().url(),
-
-  // JWT
-  JWT_SECRET: z.string().min(32),
-  JWT_ACCESS_TOKEN_TTL: z.string().default('15m'),
-  JWT_REFRESH_TOKEN_TTL: z.string().default('7d'),
 
   // Security
-  BCRYPT_ROUNDS: z.string().transform(Number).default('12'),
-  CORS_ORIGINS: z.string().transform((s) => s.split(',')),
-
-  // External Services
-  AWS_REGION: z.string().default('us-east-1'),
-  AWS_ACCESS_KEY_ID: z.string().optional(),
-  AWS_SECRET_ACCESS_KEY: z.string().optional(),
-  S3_BUCKET: z.string().optional(),
-  SES_FROM_EMAIL: z.string().email().optional(),
+  CORS_ORIGINS: z.string().transform((s) => s.split(',')).default('http://localhost:3000'),
 
   // Observability
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
-  JAEGER_ENDPOINT: z.string().url().optional(),
-  SENTRY_DSN: z.string().url().optional(),
 
   // Rate Limiting
   RATE_LIMIT_ENABLED: z

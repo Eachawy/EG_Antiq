@@ -7,9 +7,6 @@ import { TerminusModule } from '@nestjs/terminus';
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 
 // Modules
-import { AuthModule } from './modules/auth/auth.module';
-import { UsersModule } from './modules/users/users.module';
-import { OrganizationsModule } from './modules/organizations/organizations.module';
 import { HealthModule } from './modules/health/health.module';
 import { MonumentsModule } from './modules/monuments/monuments.module';
 import { ErasModule } from './modules/eras/eras.module';
@@ -42,9 +39,6 @@ import { PrismaService } from './common/services/prisma.service';
     TerminusModule,
 
     // Feature modules
-    AuthModule,
-    UsersModule,
-    OrganizationsModule,
     HealthModule,
 
     // Monument modules

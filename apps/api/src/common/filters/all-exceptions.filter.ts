@@ -1,7 +1,7 @@
 import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { logger } from '@packages/logger';
-import { AppError } from '@packages/common';
+import { logger } from '../../logger';
+import { AppError } from '../errors/base.error';
 import { getCorrelationId } from '../middleware/correlation-id.middleware';
 
 @Catch()

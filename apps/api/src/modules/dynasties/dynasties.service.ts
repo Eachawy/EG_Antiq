@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/services/prisma.service';
-import { NotFoundError } from '@packages/common';
+import { NotFoundError } from '../../common/errors/base.error';
 import { CreateDynastyDto } from './dto/create-dynasty.dto';
 import { UpdateDynastyDto } from './dto/update-dynasty.dto';
 

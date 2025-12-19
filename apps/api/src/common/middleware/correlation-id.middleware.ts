@@ -1,6 +1,6 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 import { AsyncLocalStorage } from 'async_hooks';
 
 export interface RequestContext {
@@ -18,7 +18,7 @@ export const asyncLocalStorage = new AsyncLocalStorage<Map<string, any>>();
 export class CorrelationIdMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction) {
     // Get correlation ID from header or generate new one
-    const correlationId = (req.headers['x-correlation-id'] as string) || uuidv4();
+    const correlationId = (req.headers['x-correlation-id'] as string) || randomUUID();
 
     // Set response header
     res.setHeader('X-Correlation-ID', correlationId);

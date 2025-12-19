@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/services/prisma.service';
-import { NotFoundError } from '@packages/common';
+import { NotFoundError } from '../../common/errors/base.error';
 import { CreateEraDto } from './dto/create-era.dto';
 import { UpdateEraDto } from './dto/update-era.dto';
 

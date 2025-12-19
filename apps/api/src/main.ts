@@ -3,7 +3,7 @@ import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { config } from './config';
-import { logger } from '@packages/logger';
+import { logger } from './logger';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
 async function bootstrap() {
