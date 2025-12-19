@@ -12,6 +12,7 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 
 // Modules
 import { AuthModule } from './modules/auth/auth.module';
+import { RolesModule } from './modules/roles/roles.module';
 import { HealthModule } from './modules/health/health.module';
 import { MonumentsModule } from './modules/monuments/monuments.module';
 import { ErasModule } from './modules/eras/eras.module';
@@ -45,6 +46,7 @@ import { PrismaService } from './common/services/prisma.service';
 
     // Feature modules
     AuthModule,
+    RolesModule,
     HealthModule,
 
     // Monument modules

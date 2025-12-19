@@ -21,6 +21,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('Invalid token');
     }
 
-    return user;
+    // Include roles from JWT payload in the user object
+    return {
+      ...user,
+      roles: payload.roles || [],
+    };
   }
 }

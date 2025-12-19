@@ -68,9 +68,16 @@ export class AuthService {
   async login(loginDto: LoginDto): Promise<AuthResponse> {
     const { email, password } = loginDto;
 
-    // Find user
+    // Find user with roles
     const user = await this.prisma.user.findUnique({
       where: { email },
+      include: {
+        userRoles: {
+          include: {
+            role: true,
+          },
+        },
+      },
     });
 
     if (!user) {
@@ -88,11 +95,14 @@ export class AuthService {
       throw new AppError('INVALID_CREDENTIALS', 'Invalid email or password', 401);
     }
 
-    // Generate tokens
-    const accessToken = this.generateAccessToken(user.id, user.email);
+    // Extract role names
+    const roles = user.userRoles.map((ur) => ur.role.name);
+
+    // Generate tokens (including roles in JWT)
+    const accessToken = this.generateAccessToken(user.id, user.email, roles);
     const refreshToken = await this.generateRefreshToken(user.id);
 
-    logger.info('User logged in successfully', { userId: user.id, email: user.email });
+    logger.info('User logged in successfully', { userId: user.id, email: user.email, roles });
 
     return {
       accessToken,
@@ -102,6 +112,7 @@ export class AuthService {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
+        roles,
       },
     };
   }
@@ -175,10 +186,11 @@ export class AuthService {
   /**
    * Generate JWT access token
    */
-  private generateAccessToken(userId: string, email: string): string {
+  private generateAccessToken(userId: string, email: string, roles: string[] = []): string {
     const payload = {
       sub: userId,
       email,
+      roles,
     };
 
     return this.jwtService.sign(payload, {

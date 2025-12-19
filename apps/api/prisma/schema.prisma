@@ -23,6 +23,7 @@ model User {
   updatedAt     DateTime  @updatedAt @db.Timestamptz
 
   refreshTokens RefreshToken[]
+  userRoles     UserRole[]
 
   @@index([email])
   @@map("users")
@@ -40,6 +41,37 @@ model RefreshToken {
   @@index([userId])
   @@index([token])
   @@map("refresh_tokens")
+}
+
+model Role {
+  id          String     @id @default(uuid()) @db.Uuid
+  name        String     @unique @db.VarChar(50)
+  description String?    @db.Text
+  isActive    Boolean    @default(true)
+
+  createdAt   DateTime   @default(now()) @db.Timestamptz
+  updatedAt   DateTime   @updatedAt @db.Timestamptz
+
+  userRoles   UserRole[]
+
+  @@index([name])
+  @@map("roles")
+}
+
+model UserRole {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @db.Uuid
+  roleId     String   @db.Uuid
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role       Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  assignedAt DateTime @default(now()) @db.Timestamptz
+
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+  @@map("user_roles")
 }
 
 // ============================================
