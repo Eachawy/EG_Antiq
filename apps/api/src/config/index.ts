@@ -10,6 +10,11 @@ const configSchema = z.object({
   // Database
   DATABASE_URL: z.string().url(),
 
+  // JWT
+  JWT_SECRET: z.string().min(32),
+  JWT_ACCESS_TOKEN_TTL: z.string().default('15m'),
+  JWT_REFRESH_TOKEN_TTL: z.string().default('7d'),
+
   // Security
   CORS_ORIGINS: z.string().transform((s) => s.split(',')).default('http://localhost:3000'),
 

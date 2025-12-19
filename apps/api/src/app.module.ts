@@ -2,11 +2,16 @@ import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { TerminusModule } from '@nestjs/terminus';
+import { APP_GUARD } from '@nestjs/core';
 
 // Middleware
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 
+// Guards
+import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
+
 // Modules
+import { AuthModule } from './modules/auth/auth.module';
 import { HealthModule } from './modules/health/health.module';
 import { MonumentsModule } from './modules/monuments/monuments.module';
 import { ErasModule } from './modules/eras/eras.module';
@@ -39,6 +44,7 @@ import { PrismaService } from './common/services/prisma.service';
     TerminusModule,
 
     // Feature modules
+    AuthModule,
     HealthModule,
 
     // Monument modules
@@ -50,7 +56,13 @@ import { PrismaService } from './common/services/prisma.service';
     MonumentsEraModule,
     GalleryModule,
   ],
-  providers: [PrismaService],
+  providers: [
+    PrismaService,
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+  ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
