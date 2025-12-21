@@ -1,4 +1,7 @@
-import { IsString, IsNotEmpty, IsInt } from 'class-validator';
+import { IsString, IsNotEmpty, IsInt, IsArray, ValidateNested, IsOptional } from 'class-validator';
+import { Type } from 'class-transformer';
+import { CreateGalleryItemDto } from './create-gallery-item.dto';
+import { CreateDescriptionItemDto } from './create-description-item.dto';
 
 export class CreateMonumentDto {
   @IsString()
@@ -49,4 +52,16 @@ export class CreateMonumentDto {
   @IsString()
   @IsNotEmpty()
   center: string;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateGalleryItemDto)
+  @IsOptional()
+  galleries?: CreateGalleryItemDto[];
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateDescriptionItemDto)
+  @IsOptional()
+  descriptions?: CreateDescriptionItemDto[];
 }

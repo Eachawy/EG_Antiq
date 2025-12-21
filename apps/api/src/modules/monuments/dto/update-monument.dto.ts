@@ -1,4 +1,7 @@
-import { IsString, IsOptional, IsInt } from 'class-validator';
+import { IsString, IsOptional, IsInt, IsArray, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+import { UpdateGalleryItemDto } from './update-gallery-item.dto';
+import { UpdateDescriptionItemDto } from './update-description-item.dto';
 
 export class UpdateMonumentDto {
   @IsString()
@@ -52,4 +55,16 @@ export class UpdateMonumentDto {
   @IsString()
   @IsOptional()
   center?: string;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => UpdateGalleryItemDto)
+  @IsOptional()
+  galleries?: UpdateGalleryItemDto[];
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => UpdateDescriptionItemDto)
+  @IsOptional()
+  descriptions?: UpdateDescriptionItemDto[];
 }

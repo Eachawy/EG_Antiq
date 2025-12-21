@@ -152,10 +152,11 @@ model Monument {
   createdAt           DateTime? @default(now()) @map("created_at") @db.Timestamp
 
   // Relations
-  monumentType MonumentType @relation(fields: [monumentsTypeId], references: [id])
-  era          Era          @relation(fields: [eraId], references: [id])
-  dynasty      Dynasty      @relation(fields: [dynastyId], references: [id])
-  galleries    Gallery[]
+  monumentType         MonumentType          @relation(fields: [monumentsTypeId], references: [id])
+  era                  Era                   @relation(fields: [eraId], references: [id])
+  dynasty              Dynasty               @relation(fields: [dynastyId], references: [id])
+  galleries            Gallery[]
+  descriptionMonuments DescriptionMonument[]
 
   @@map("monuments")
 }
@@ -186,7 +187,7 @@ model Gallery {
   dynasty      Dynasty      @relation(fields: [dynastyId], references: [id])
   era          Era          @relation(fields: [eraId], references: [id])
   monumentType MonumentType @relation(fields: [monumentsTypeId], references: [id])
-  monument     Monument     @relation(fields: [monumentsId], references: [id])
+  monument     Monument     @relation(fields: [monumentsId], references: [id], onDelete: Cascade)
 
   @@map("gallery")
 }
@@ -198,12 +199,14 @@ model DescriptionMonument {
   eraId            Int       @map("era_id")
   monumentsTypeId  Int       @map("monuments_type_id")
   dynastyId        Int       @map("dynasty_id")
+  monumentsId      Int?      @map("monuments_id")
   createdAt        DateTime? @default(now()) @map("created_at") @db.Timestamp
 
   // Relations
   era          Era          @relation(fields: [eraId], references: [id])
   monumentType MonumentType @relation(fields: [monumentsTypeId], references: [id])
   dynasty      Dynasty      @relation(fields: [dynastyId], references: [id])
+  monument     Monument?    @relation(fields: [monumentsId], references: [id], onDelete: Cascade)
 
   @@map("description_monuments")
 }
