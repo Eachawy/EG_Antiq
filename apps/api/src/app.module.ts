@@ -24,6 +24,7 @@ import { GalleryModule } from './modules/gallery/gallery.module';
 
 // Database
 import { PrismaService } from './common/services/prisma.service';
+import { EmailService } from './common/services/email.service';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { PrismaService } from './common/services/prisma.service';
   ],
   providers: [
     PrismaService,
+    EmailService,
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,

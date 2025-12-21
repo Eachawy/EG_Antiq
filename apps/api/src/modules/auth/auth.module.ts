@@ -6,6 +6,7 @@ import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { RolesGuard } from './guards/roles.guard';
 import { PrismaService } from '../../common/services/prisma.service';
+import { EmailService } from '../../common/services/email.service';
 import { config } from '../../config';
 
 @Module({
@@ -17,7 +18,7 @@ import { config } from '../../config';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, RolesGuard, PrismaService],
+  providers: [AuthService, JwtStrategy, RolesGuard, PrismaService, EmailService],
   exports: [AuthService, RolesGuard],
 })
 export class AuthModule {}

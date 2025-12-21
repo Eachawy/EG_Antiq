@@ -2,6 +2,8 @@ import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { RequestResetPasswordDto } from './dto/request-reset-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { Public } from './decorators/public.decorator';
 
 @Controller('auth')
@@ -48,6 +50,26 @@ export class AuthController {
     await this.authService.logout(refreshToken);
     return {
       message: 'Logout successful',
+    };
+  }
+
+  @Public()
+  @Post('request-reset-password')
+  @HttpCode(HttpStatus.OK)
+  async requestResetPassword(@Body() requestResetDto: RequestResetPasswordDto) {
+    await this.authService.requestPasswordReset(requestResetDto);
+    return {
+      message: 'If your email exists in our system, you will receive a password reset email',
+    };
+  }
+
+  @Public()
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    await this.authService.resetPassword(resetPasswordDto);
+    return {
+      message: 'Password has been reset successfully',
     };
   }
 }

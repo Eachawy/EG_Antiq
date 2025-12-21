@@ -1,11 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
+import * as crypto from 'crypto';
 import { PrismaService } from '../../common/services/prisma.service';
+import { EmailService } from '../../common/services/email.service';
 import { AppError } from '../../common/errors/base.error';
 import { config } from '../../config';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { RequestResetPasswordDto } from './dto/request-reset-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { AuthResponse, RefreshResponse } from './dto/auth-response.dto';
 import { logger } from '../../logger';
 
@@ -13,7 +17,8 @@ import { logger } from '../../logger';
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly jwtService: JwtService
+    private readonly jwtService: JwtService,
+    private readonly emailService: EmailService
   ) {}
 
   /**
@@ -221,5 +226,101 @@ export class AuthService {
     });
 
     return token;
+  }
+
+  /**
+   * Request password reset - generates reset token and sends email
+   */
+  async requestPasswordReset(requestResetDto: RequestResetPasswordDto): Promise<void> {
+    const { email } = requestResetDto;
+
+    // Find user by email
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      // Don't reveal if user exists or not for security
+      logger.warn('Password reset requested for non-existent email', { email });
+      // Return success anyway to prevent email enumeration
+      return;
+    }
+
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+
+    // Set expiration to 1 hour from now
+    const resetPasswordExpires = new Date();
+    resetPasswordExpires.setHours(resetPasswordExpires.getHours() + 1);
+
+    // Save hashed token to database
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        resetPasswordToken: hashedToken,
+        resetPasswordExpires,
+      },
+    });
+
+    logger.info('Password reset token generated', { userId: user.id, email: user.email });
+
+    // Send password reset email
+    await this.emailService.sendPasswordResetEmail({
+      email: user.email,
+      resetToken,
+      userName: user.firstName,
+    });
+  }
+
+  /**
+   * Reset password using token and send notification email
+   */
+  async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<void> {
+    const { token, newPassword } = resetPasswordDto;
+
+    // Hash the token to compare with stored hash
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    // Find user with this reset token
+    const user = await this.prisma.user.findFirst({
+      where: {
+        resetPasswordToken: hashedToken,
+        resetPasswordExpires: {
+          gt: new Date(), // Token must not be expired
+        },
+      },
+    });
+
+    if (!user) {
+      throw new AppError('INVALID_TOKEN', 'Password reset token is invalid or has expired', 400);
+    }
+
+    // Hash new password
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+
+    // Update password and clear reset token
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash,
+        resetPasswordToken: null,
+        resetPasswordExpires: null,
+      },
+    });
+
+    // Revoke all existing refresh tokens for security
+    await this.prisma.refreshToken.updateMany({
+      where: { userId: user.id },
+      data: { isRevoked: true },
+    });
+
+    logger.info('Password reset successfully', { userId: user.id, email: user.email });
+
+    // Send password changed notification email
+    await this.emailService.sendPasswordChangedEmail({
+      email: user.email,
+      userName: user.firstName,
+    });
   }
 }

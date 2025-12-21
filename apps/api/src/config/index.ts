@@ -28,6 +28,19 @@ const configSchema = z.object({
     .default('true'),
   RATE_LIMIT_MAX: z.string().transform(Number).default('1000'),
   RATE_LIMIT_WINDOW_MS: z.string().transform(Number).default('3600000'),
+
+  // Email
+  EMAIL_HOST: z.string().default('smtp.gmail.com'),
+  EMAIL_PORT: z.string().transform(Number).default('587'),
+  EMAIL_SECURE: z
+    .string()
+    .transform((s) => s === 'true')
+    .default('false'),
+  EMAIL_USER: z.string().default('noreply@example.com'),
+  EMAIL_PASSWORD: z.string().default(''),
+  EMAIL_FROM: z.string().default('noreply@example.com'),
+  EMAIL_FROM_NAME: z.string().default('EG Antiq'),
+  FRONTEND_URL: z.string().default('http://localhost:3000'),
 });
 
 export type Config = z.infer<typeof configSchema>;
