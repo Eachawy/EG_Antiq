@@ -8,7 +8,11 @@
     "start": "cd ../.. && NODE_PATH=apps/api/node_modules node dist/main",
     "start:debug": "nest start --debug --watch",
     "start:prod": "npx prisma db push --skip-generate && cd ../.. && NODE_PATH=apps/api/node_modules node dist/main",
-    "prisma:migrate": "npx prisma db push"
+    "prisma:migrate": "npx prisma db push",
+    "db:export": "PGPASSWORD=E198373 pg_dump -h localhost -U postgres -d EG_Antiq --data-only --inserts > /tmp/eg_antiq_data.sql && echo 'Data exported to /tmp/eg_antiq_data.sql'",
+    "db:import": "docker cp /tmp/eg_antiq_data.sql backend-postgres:/tmp/data.sql && docker exec backend-postgres psql -U postgres -d EG_Antiq -f /tmp/data.sql && echo 'Data imported to Docker database'",
+    "db:copy": "npm run db:export && npm run db:import",
+    "db:sync": "npm run db:export && docker exec backend-postgres psql -U postgres -d EG_Antiq -c 'TRUNCATE users, refresh_tokens, roles, user_roles CASCADE;' && npm run db:import"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.0",
