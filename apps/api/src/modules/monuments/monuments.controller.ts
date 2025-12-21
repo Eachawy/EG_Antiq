@@ -1,8 +1,11 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { MonumentsService } from './monuments.service';
 import { CreateMonumentDto } from './dto/create-monument.dto';
 import { UpdateMonumentDto } from './dto/update-monument.dto';
 
+@ApiTags('Monuments')
+@ApiBearerAuth('JWT-auth')
 @Controller('monuments')
 export class MonumentsController {
   constructor(private readonly monumentsService: MonumentsService) {}
@@ -12,6 +15,8 @@ export class MonumentsController {
    * Get all monuments
    */
   @Get()
+  @ApiOperation({ summary: 'Get all monuments' })
+  @ApiResponse({ status: 200, description: 'Returns list of all monuments' })
   async findAll() {
     const monuments = await this.monumentsService.findAll();
     return {
@@ -27,6 +32,10 @@ export class MonumentsController {
    * Get a single monument by ID
    */
   @Get(':id')
+  @ApiOperation({ summary: 'Get monument by ID' })
+  @ApiParam({ name: 'id', description: 'Monument ID', example: 1 })
+  @ApiResponse({ status: 200, description: 'Returns monument details' })
+  @ApiResponse({ status: 404, description: 'Monument not found' })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     const monument = await this.monumentsService.findOne(id);
     return {
@@ -39,6 +48,9 @@ export class MonumentsController {
    * Create a new monument
    */
   @Post()
+  @ApiOperation({ summary: 'Create a new monument' })
+  @ApiResponse({ status: 201, description: 'Monument created successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request - validation error' })
   async create(@Body() createMonumentDto: CreateMonumentDto) {
     const monument = await this.monumentsService.create(createMonumentDto);
     return {
@@ -52,6 +64,11 @@ export class MonumentsController {
    * Update a monument
    */
   @Patch(':id')
+  @ApiOperation({ summary: 'Update monument by ID' })
+  @ApiParam({ name: 'id', description: 'Monument ID', example: 1 })
+  @ApiResponse({ status: 200, description: 'Monument updated successfully' })
+  @ApiResponse({ status: 404, description: 'Monument not found' })
+  @ApiResponse({ status: 400, description: 'Bad request - validation error' })
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateMonumentDto: UpdateMonumentDto,
@@ -68,6 +85,10 @@ export class MonumentsController {
    * Delete a monument
    */
   @Delete(':id')
+  @ApiOperation({ summary: 'Delete monument by ID' })
+  @ApiParam({ name: 'id', description: 'Monument ID', example: 1 })
+  @ApiResponse({ status: 200, description: 'Monument deleted successfully' })
+  @ApiResponse({ status: 404, description: 'Monument not found' })
   async remove(@Param('id', ParseIntPipe) id: number) {
     const result = await this.monumentsService.remove(id);
     return result;

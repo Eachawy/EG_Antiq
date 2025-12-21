@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { config } from './config';
@@ -24,8 +25,47 @@ async function bootstrap() {
     maxAge: 86400,
   });
 
-  // Global prefix
-  app.setGlobalPrefix('api/v1');
+  // Global prefix (exclude swagger docs)
+  app.setGlobalPrefix('api/v1', {
+    exclude: ['api/docs', 'api/docs-json'],
+  });
+
+  // Swagger documentation
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('EG Antiq API')
+    .setDescription('Ancient Egyptian Monuments and Heritage Management System API')
+    .setVersion('1.0')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'JWT',
+        description: 'Enter JWT token',
+        in: 'header',
+      },
+      'JWT-auth'
+    )
+    .addTag('Authentication', 'User authentication and authorization endpoints')
+    .addTag('Monuments', 'Ancient monuments and sites management')
+    .addTag('Gallery', 'Monument gallery images management')
+    .addTag('Descriptions', 'Monument descriptions management')
+    .addTag('Eras', 'Historical eras management')
+    .addTag('Dynasties', 'Egyptian dynasties management')
+    .addTag('Monument Types', 'Types of monuments (temple, tomb, etc.)')
+    .addTag('Monuments Era', 'Monument era relationships')
+    .addTag('Roles', 'User roles and permissions management')
+    .addTag('Health', 'API health check endpoints')
+    .build();
+
+  const document = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup('api/docs', app, document, {
+    swaggerOptions: {
+      persistAuthorization: true,
+      tagsSorter: 'alpha',
+      operationsSorter: 'alpha',
+    },
+  });
 
   // Global validation pipe
   app.useGlobalPipes(
