@@ -44,3 +44,10 @@ Thumbs.db
 *.tmp
 *.temp
 .cache
+
+# Uploads - ignore all files but keep directory structure
+uploads/**/*
+!uploads/.gitkeep
+!uploads/README.md
+!uploads/*/
+!uploads/*/.gitkeep
