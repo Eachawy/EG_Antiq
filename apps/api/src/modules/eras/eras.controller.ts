@@ -3,15 +3,16 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@ne
 import { ErasService } from './eras.service';
 import { CreateEraDto } from './dto/create-era.dto';
 import { UpdateEraDto } from './dto/update-era.dto';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('Eras')
-@ApiBearerAuth('JWT-auth')
 @Controller('eras')
 export class ErasController {
   constructor(private readonly erasService: ErasService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get all eras' })
+  @Public()
+  @ApiOperation({ summary: 'Get all eras (PUBLIC)' })
   @ApiResponse({ status: 200, description: 'Returns list of all historical eras' })
   async findAll() {
     const eras = await this.erasService.findAll();
@@ -24,7 +25,8 @@ export class ErasController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get era by ID' })
+  @Public()
+  @ApiOperation({ summary: 'Get era by ID (PUBLIC)' })
   @ApiParam({ name: 'id', description: 'Era ID', example: 1 })
   @ApiResponse({ status: 200, description: 'Returns era details' })
   @ApiResponse({ status: 404, description: 'Era not found' })
@@ -36,7 +38,8 @@ export class ErasController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Create a new era' })
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Create a new era (ADMIN)' })
   @ApiResponse({ status: 201, description: 'Era created successfully' })
   @ApiResponse({ status: 400, description: 'Bad request - validation error' })
   async create(@Body() createEraDto: CreateEraDto) {
@@ -48,7 +51,8 @@ export class ErasController {
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Update era by ID' })
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Update era by ID (ADMIN)' })
   @ApiParam({ name: 'id', description: 'Era ID', example: 1 })
   @ApiResponse({ status: 200, description: 'Era updated successfully' })
   @ApiResponse({ status: 404, description: 'Era not found' })
@@ -65,7 +69,8 @@ export class ErasController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Delete era by ID' })
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Delete era by ID (ADMIN)' })
   @ApiParam({ name: 'id', description: 'Era ID', example: 1 })
   @ApiResponse({ status: 200, description: 'Era deleted successfully' })
   @ApiResponse({ status: 404, description: 'Era not found' })

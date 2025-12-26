@@ -3,15 +3,16 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@ne
 import { DynastiesService } from './dynasties.service';
 import { CreateDynastyDto } from './dto/create-dynasty.dto';
 import { UpdateDynastyDto } from './dto/update-dynasty.dto';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('Dynasties')
-@ApiBearerAuth('JWT-auth')
 @Controller('dynasties')
 export class DynastiesController {
   constructor(private readonly dynastiesService: DynastiesService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get all dynasties' })
+  @Public()
+  @ApiOperation({ summary: 'Get all dynasties (PUBLIC)' })
   @ApiResponse({ status: 200, description: 'Returns list of all Egyptian dynasties' })
   async findAll() {
     const dynasties = await this.dynastiesService.findAll();
@@ -24,7 +25,8 @@ export class DynastiesController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get dynasty by ID' })
+  @Public()
+  @ApiOperation({ summary: 'Get dynasty by ID (PUBLIC)' })
   @ApiParam({ name: 'id', description: 'Dynasty ID', example: 1 })
   @ApiResponse({ status: 200, description: 'Returns dynasty details' })
   @ApiResponse({ status: 404, description: 'Dynasty not found' })
@@ -36,7 +38,8 @@ export class DynastiesController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Create a new dynasty' })
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Create a new dynasty (ADMIN)' })
   @ApiResponse({ status: 201, description: 'Dynasty created successfully' })
   @ApiResponse({ status: 400, description: 'Bad request - validation error' })
   async create(@Body() createDynastyDto: CreateDynastyDto) {
@@ -48,7 +51,8 @@ export class DynastiesController {
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Update dynasty by ID' })
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Update dynasty by ID (ADMIN)' })
   @ApiParam({ name: 'id', description: 'Dynasty ID', example: 1 })
   @ApiResponse({ status: 200, description: 'Dynasty updated successfully' })
   @ApiResponse({ status: 404, description: 'Dynasty not found' })
@@ -65,7 +69,8 @@ export class DynastiesController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Delete dynasty by ID' })
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Delete dynasty by ID (ADMIN)' })
   @ApiParam({ name: 'id', description: 'Dynasty ID', example: 1 })
   @ApiResponse({ status: 200, description: 'Dynasty deleted successfully' })
   @ApiResponse({ status: 404, description: 'Dynasty not found' })
