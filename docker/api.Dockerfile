@@ -1,78 +1,50 @@
-# ============================================
-# Stage 1: Dependencies
-# ============================================
-FROM node:20-alpine AS deps
-
-# Install pnpm
-RUN npm install -g pnpm@10
-
-WORKDIR /app
-
-# Copy package files
-COPY apps/api/package.json ./
-
-# Install dependencies (no lockfile for simplicity in Docker)
-RUN pnpm install
-
-# ============================================
-# Stage 2: Build
-# ============================================
+# Stage 1: Builder - Install dependencies and build
 FROM node:20-alpine AS builder
 
-RUN npm install -g pnpm@10
+# Enable corepack and set pnpm version
+RUN corepack enable && corepack prepare pnpm@10.26.0 --activate
 
+# Set working directory
 WORKDIR /app
 
-# Copy dependencies from deps stage
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/package.json ./package.json
+# Copy package files and configs
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.json ./
+COPY packages/database/package.json ./packages/database/
+COPY packages/common/package.json ./packages/common/
+COPY packages/logger/package.json ./packages/logger/
+COPY apps/api/package.json ./apps/api/
 
-# Copy source code
-COPY apps/api/src ./src
-COPY apps/api/prisma ./prisma
-COPY apps/api/nest-cli.json ./nest-cli.json
+# Copy Prisma schema before install (needed for postinstall script)
+COPY packages/database/prisma ./packages/database/prisma
 
-# Copy and modify tsconfig for Docker build (output to ./dist instead of ../../dist)
-COPY apps/api/tsconfig.json ./tsconfig.json
-RUN sed -i 's|"outDir": "../../dist"|"outDir": "./dist"|g' tsconfig.json
+# Install dependencies
+RUN pnpm install --frozen-lockfile
 
-# Generate Prisma client
-RUN pnpm prisma generate
+# Copy rest of source code
+COPY packages/common ./packages/common
+COPY packages/logger ./packages/logger
+COPY apps/api/ ./apps/api/
 
-# Build application
+# Build all packages
 RUN pnpm build
 
-# ============================================
-# Stage 3: Production
-# ============================================
-FROM node:20-slim AS production
+# Stage 2: Production - Run the application
+FROM node:20-alpine AS production
 
-# Install dumb-init and OpenSSL for proper signal handling and Prisma
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    dumb-init \
-    openssl \
-    && rm -rf /var/lib/apt/lists/*
+# Install OpenSSL for Prisma
+RUN apk add --no-cache openssl
 
-# Create non-root user
-RUN groupadd -g 1001 nodejs && \
-    useradd -r -u 1001 -g nodejs nodejs
+# Enable corepack and set pnpm version (needed for module resolution)
+RUN corepack enable && corepack prepare pnpm@10.26.0 --activate
 
+# Set working directory
 WORKDIR /app
 
-# Copy production dependencies (including generated Prisma client from builder)
-COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=nodejs:nodejs /app/package.json ./package.json
+# Copy everything from builder
+COPY --from=builder /app ./
 
-# Copy built application
-COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
-
-# Copy prisma schema for runtime access
-COPY --from=builder --chown=nodejs:nodejs /app/prisma ./prisma
-
-# Note: .env files should be provided via environment variables in production
-
-# Switch to non-root user
-USER nodejs
+# Set NODE_ENV
+ENV NODE_ENV=production
 
 # Expose port
 EXPOSE 3000
@@ -81,9 +53,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3000/api/v1/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
-# Use dumb-init for proper signal handling
-ENTRYPOINT ["dumb-init", "--"]
-
-# Start application (runs migrations first, then starts server)
-WORKDIR /app
-CMD ["sh", "-c", "npx prisma db push --skip-generate && node dist/main.js"]
+# Start the application
+CMD ["pnpm", "--filter", "@app/api", "start"]

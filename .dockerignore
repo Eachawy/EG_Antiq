@@ -1,13 +1,20 @@
 # Dependencies
 node_modules
-npm-debug.log
-pnpm-debug.log
-yarn-error.log
+**/node_modules
 
-# Build output
+# Build outputs
 dist
+**/dist
 build
-*.tsbuildinfo
+**/build
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
 
 # Environment files
 .env
@@ -28,35 +35,23 @@ Thumbs.db
 # Git
 .git
 .gitignore
-.gitattributes
 
-# CI/CD
-.github
-.gitlab-ci.yml
+# Docker
+docker-compose*.yml
+.dockerignore
+
+# Testing
+coverage
+**/.nyc_output
+**/*.test.ts
+**/*.spec.ts
+**/test
 
 # Documentation
 *.md
 docs
-CHANGELOG.md
-LICENSE
-
-# Testing
-coverage
-.nyc_output
-*.spec.ts
-*.test.ts
-test
-tests
-__tests__
-
-# Docker
-Dockerfile
-docker-compose*.yml
-.dockerignore
 
 # Misc
-.husky
-.prettierrc
-.eslintrc.js
-.editorconfig
-packages
+.cache
+tmp
+temp

@@ -46,8 +46,8 @@ async function bootstrap() {
       },
       'JWT-auth'
     )
-    .addTag('Authentication', 'User authentication and authorization endpoints')
-    .addTag('Monuments', 'Ancient monuments and sites management')
+    .addTag('Authentication', 'Admin authentication and authorization endpoints')
+    .addTag('Monuments', 'Ancient monuments and sites management (Admin)')
     .addTag('Gallery', 'Monument gallery images management')
     .addTag('Descriptions', 'Monument descriptions management')
     .addTag('Eras', 'Historical eras management')
@@ -56,6 +56,15 @@ async function bootstrap() {
     .addTag('Monuments Era', 'Monument era relationships')
     .addTag('Roles', 'User roles and permissions management')
     .addTag('Health', 'API health check endpoints')
+    .addTag('Portal Auth', 'Portal user authentication (email/password + OAuth)')
+    .addTag('Portal Users', 'Portal user profile management')
+    .addTag('Portal Monuments', 'Public monument search and browsing')
+    .addTag('Favorites', 'User favorites management')
+    .addTag('Browsing History', 'User browsing history tracking')
+    .addTag('Saved Searches', 'User saved searches management')
+    .addTag('Portal Settings', 'User settings and preferences')
+    .addTag('Contact', 'Contact form submissions')
+    .addTag('Newsletter', 'Newsletter subscription management')
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);

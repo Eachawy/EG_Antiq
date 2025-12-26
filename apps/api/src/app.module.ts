@@ -22,6 +22,17 @@ import { DescriptionMonumentsModule } from './modules/description-monuments/desc
 import { MonumentsEraModule } from './modules/monuments-era/monuments-era.module';
 import { GalleryModule } from './modules/gallery/gallery.module';
 
+// Portal modules
+import { PortalAuthModule } from './modules/portal-auth/portal-auth.module';
+import { PortalUsersModule } from './modules/portal-users/portal-users.module';
+import { FavoritesModule } from './modules/favorites/favorites.module';
+import { BrowsingHistoryModule } from './modules/browsing-history/browsing-history.module';
+import { SavedSearchesModule } from './modules/saved-searches/saved-searches.module';
+import { PortalSettingsModule } from './modules/portal-settings/portal-settings.module';
+import { ContactModule } from './modules/contact/contact.module';
+import { NewsletterModule } from './modules/newsletter/newsletter.module';
+import { PortalMonumentsModule } from './modules/portal-monuments/portal-monuments.module';
+
 // Database
 import { PrismaService } from './common/services/prisma.service';
 import { EmailService } from './common/services/email.service';
@@ -58,6 +69,17 @@ import { EmailService } from './common/services/email.service';
     DescriptionMonumentsModule,
     MonumentsEraModule,
     GalleryModule,
+
+    // Portal modules
+    PortalAuthModule,
+    PortalUsersModule,
+    FavoritesModule,
+    BrowsingHistoryModule,
+    SavedSearchesModule,
+    PortalSettingsModule,
+    ContactModule,
+    NewsletterModule,
+    PortalMonumentsModule,
   ],
   providers: [
     PrismaService,

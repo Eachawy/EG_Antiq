@@ -51,6 +51,10 @@ services:
       JWT_SECRET: your-super-secret-key-min-32-characters-long-change-in-production
       JWT_ACCESS_TOKEN_TTL: 15m
       JWT_REFRESH_TOKEN_TTL: 7d
+      PORTAL_JWT_SECRET: portal-secret-key-min-32-characters-long-change-in-production
+      PORTAL_JWT_ACCESS_TOKEN_TTL: 15m
+      PORTAL_JWT_REFRESH_TOKEN_TTL: 7d
+      API_URL: http://localhost:3000
       BCRYPT_ROUNDS: 10
       CORS_ORIGINS: http://localhost:3000,http://localhost:3001
       LOG_LEVEL: info

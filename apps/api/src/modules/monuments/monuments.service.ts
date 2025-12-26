@@ -35,7 +35,7 @@ export class MonumentsService {
         era: true,
         dynasty: true,
         galleries: true,
-        descriptionMonuments: true,
+        monumentDescriptions: true,
       },
     });
 
@@ -65,7 +65,7 @@ export class MonumentsService {
               })),
             }
           : undefined,
-        descriptionMonuments: descriptions?.length
+        monumentDescriptions: descriptions?.length
           ? {
               create: descriptions.map((desc) => ({
                 descriptionAr: desc.descriptionAr,
@@ -82,7 +82,7 @@ export class MonumentsService {
         era: true,
         dynasty: true,
         galleries: true,
-        descriptionMonuments: true,
+        monumentDescriptions: true,
       },
     });
   }
@@ -152,7 +152,7 @@ export class MonumentsService {
         // Delete descriptions not in the update list
         await tx.descriptionMonument.deleteMany({
           where: {
-            monumentsId: id,
+            monumentId: id,
             id: { notIn: descriptionIdsToKeep },
           },
         });
@@ -175,7 +175,7 @@ export class MonumentsService {
             // Create new description
             await tx.descriptionMonument.create({
               data: {
-                monumentsId: id,
+                monumentId: id,
                 descriptionAr: desc.descriptionAr!,
                 descriptionEn: desc.descriptionEn!,
                 eraId: desc.eraId ?? updated.eraId,
@@ -195,7 +195,7 @@ export class MonumentsService {
           era: true,
           dynasty: true,
           galleries: true,
-          descriptionMonuments: true,
+          monumentDescriptions: true,
         },
       });
     });
