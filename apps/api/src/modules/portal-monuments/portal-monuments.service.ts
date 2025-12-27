@@ -4,6 +4,7 @@ import { PrismaService } from '../../common/services/prisma.service';
 import { AppError } from '../../common/errors/base.error';
 import { SearchFiltersDto } from './dto/search-filters.dto';
 import { logger } from '../../logger';
+import { calculatePagination, createPaginationMeta } from '../../common/utils/pagination';
 
 @Injectable()
 export class PortalMonumentsService {
@@ -13,10 +14,7 @@ export class PortalMonumentsService {
    * Get all monuments (PUBLIC - no authentication required)
    */
   async findAll(page: number = 1, limit?: number, portalUserId?: string) {
-    // If limit is 0 or undefined, return all results without pagination
-    const skipPagination = !limit || limit === 0;
-    const skip = skipPagination ? undefined : (page - 1) * limit;
-    const take = skipPagination ? undefined : limit;
+    const { skip, take, skipPagination } = calculatePagination(page, limit);
 
     // Get all monuments with optional pagination
     const [monuments, total] = await Promise.all([
@@ -68,12 +66,7 @@ export class PortalMonumentsService {
       data: monumentsWithFavorites,
       pagination: skipPagination
         ? { total }
-        : {
-            page,
-            limit: limit!,
-            total,
-            totalPages: Math.ceil(total / limit!),
-          },
+        : createPaginationMeta(total, page, limit),
     };
   }
 
@@ -83,10 +76,7 @@ export class PortalMonumentsService {
   async search(filters: SearchFiltersDto, portalUserId?: string) {
     const { keyword, eraIds, dynastyIds, monumentTypeIds, dateFrom, dateTo, page = 1, limit } = filters;
 
-    // If limit is 0 or undefined, return all results without pagination
-    const skipPagination = !limit || limit === 0;
-    const skip = skipPagination ? undefined : (page - 1) * limit;
-    const take = skipPagination ? undefined : limit;
+    const { skip, take, skipPagination } = calculatePagination(page, limit);
 
     // Build where clause
     const where: Prisma.MonumentWhereInput = {};
@@ -167,12 +157,7 @@ export class PortalMonumentsService {
       data: monumentsWithFavorites,
       pagination: skipPagination
         ? { total }
-        : {
-            page,
-            limit: limit!,
-            total,
-            totalPages: Math.ceil(total / limit!),
-          },
+        : createPaginationMeta(total, page, limit),
     };
   }
 

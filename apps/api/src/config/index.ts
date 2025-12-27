@@ -8,9 +8,7 @@ const configSchema = z.object({
   // Application
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.string().transform(Number).default('3000'),
-  APP_VERSION: z.string().default('1.0.0'),
-  SERVICE_NAME: z.string().default('api'),
-  API_URL: z.string().url().default('http://localhost:3000'),
+  API_URL: z.string().url().default('http://localhost:3000'), // Required for OAuth callbacks
 
   // Database
   DATABASE_URL: z.string().url(),
@@ -40,14 +38,6 @@ const configSchema = z.object({
 
   // Observability
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
-
-  // Rate Limiting
-  RATE_LIMIT_ENABLED: z
-    .string()
-    .transform((s) => s === 'true')
-    .default('true'),
-  RATE_LIMIT_MAX: z.string().transform(Number).default('1000'),
-  RATE_LIMIT_WINDOW_MS: z.string().transform(Number).default('3600000'),
 
   // Email
   EMAIL_HOST: z.string().default('smtp.gmail.com'),

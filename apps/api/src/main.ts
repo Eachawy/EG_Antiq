@@ -100,7 +100,7 @@ async function bootstrap() {
   logger.info(`Application started successfully`, {
     port,
     environment: config.NODE_ENV,
-    version: config.APP_VERSION,
+    version: '1.0.0',
   });
 
   // Handle shutdown signals

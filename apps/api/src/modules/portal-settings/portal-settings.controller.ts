@@ -13,7 +13,7 @@ import { PortalSettingsService } from './portal-settings.service';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { PortalJwtAuthGuard } from '../portal-auth/guards/portal-jwt-auth.guard';
-import { CurrentPortalUser } from '../portal-auth/decorators/current-portal-user.decorator';
+import { CurrentPortalUser, AuthenticatedPortalUser } from '../portal-auth/decorators/current-portal-user.decorator';
 
 @ApiTags('Portal Settings')
 @Controller('portal/settings')
@@ -25,8 +25,8 @@ export class PortalSettingsController {
   @Get()
   @ApiOperation({ summary: 'Get user settings' })
   @ApiResponse({ status: 200, description: 'Settings retrieved successfully' })
-  async getSettings(@CurrentPortalUser() user: any) {
-    const settings = await this.portalSettingsService.getSettings(user.id);
+  async getSettings(@CurrentPortalUser() user: AuthenticatedPortalUser) {
+    const settings = await this.portalSettingsService.getSettings(user.sub);
     return {
       data: settings,
       message: 'Settings retrieved successfully',
@@ -36,8 +36,8 @@ export class PortalSettingsController {
   @Patch()
   @ApiOperation({ summary: 'Update user settings' })
   @ApiResponse({ status: 200, description: 'Settings updated successfully' })
-  async updateSettings(@CurrentPortalUser() user: any, @Body() updateSettingsDto: UpdateSettingsDto) {
-    const settings = await this.portalSettingsService.updateSettings(user.id, updateSettingsDto);
+  async updateSettings(@CurrentPortalUser() user: AuthenticatedPortalUser, @Body() updateSettingsDto: UpdateSettingsDto) {
+    const settings = await this.portalSettingsService.updateSettings(user.sub, updateSettingsDto);
     return {
       data: settings,
       message: 'Settings updated successfully',
@@ -50,8 +50,8 @@ export class PortalSettingsController {
   @ApiResponse({ status: 200, description: 'Password changed successfully' })
   @ApiResponse({ status: 401, description: 'Current password is incorrect' })
   @ApiResponse({ status: 400, description: 'Cannot change password for OAuth users' })
-  async changePassword(@CurrentPortalUser() user: any, @Body() changePasswordDto: ChangePasswordDto) {
-    await this.portalSettingsService.changePassword(user.id, changePasswordDto);
+  async changePassword(@CurrentPortalUser() user: AuthenticatedPortalUser, @Body() changePasswordDto: ChangePasswordDto) {
+    await this.portalSettingsService.changePassword(user.sub, changePasswordDto);
     return {
       message: 'Password changed successfully. Please login again with your new password.',
     };
@@ -61,8 +61,8 @@ export class PortalSettingsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Download user data (GDPR)' })
   @ApiResponse({ status: 200, description: 'User data retrieved successfully' })
-  async downloadData(@CurrentPortalUser() user: any) {
-    const data = await this.portalSettingsService.downloadUserData(user.id);
+  async downloadData(@CurrentPortalUser() user: AuthenticatedPortalUser) {
+    const data = await this.portalSettingsService.downloadUserData(user.sub);
     return {
       data,
       message: 'User data retrieved successfully',

@@ -3,7 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagg
 import { PortalUsersService } from './portal-users.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { PortalJwtAuthGuard } from '../portal-auth/guards/portal-jwt-auth.guard';
-import { CurrentPortalUser } from '../portal-auth/decorators/current-portal-user.decorator';
+import { CurrentPortalUser, AuthenticatedPortalUser } from '../portal-auth/decorators/current-portal-user.decorator';
 
 @ApiTags('Portal Users')
 @Controller('portal/users')
@@ -16,8 +16,8 @@ export class PortalUsersController {
   @ApiOperation({ summary: 'Get current user profile' })
   @ApiResponse({ status: 200, description: 'Profile retrieved successfully' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  async getProfile(@CurrentPortalUser() user: any) {
-    const profile = await this.portalUsersService.getProfile(user.id);
+  async getProfile(@CurrentPortalUser() user: AuthenticatedPortalUser) {
+    const profile = await this.portalUsersService.getProfile(user.sub);
     return {
       data: profile,
       message: 'Profile retrieved successfully',
@@ -28,8 +28,8 @@ export class PortalUsersController {
   @ApiOperation({ summary: 'Update current user profile' })
   @ApiResponse({ status: 200, description: 'Profile updated successfully' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  async updateProfile(@CurrentPortalUser() user: any, @Body() updateProfileDto: UpdateProfileDto) {
-    const profile = await this.portalUsersService.updateProfile(user.id, updateProfileDto);
+  async updateProfile(@CurrentPortalUser() user: AuthenticatedPortalUser, @Body() updateProfileDto: UpdateProfileDto) {
+    const profile = await this.portalUsersService.updateProfile(user.sub, updateProfileDto);
     return {
       data: profile,
       message: 'Profile updated successfully',
@@ -41,8 +41,8 @@ export class PortalUsersController {
   @ApiOperation({ summary: 'Delete current user account' })
   @ApiResponse({ status: 200, description: 'Account deleted successfully' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  async deleteAccount(@CurrentPortalUser() user: any) {
-    await this.portalUsersService.deleteAccount(user.id);
+  async deleteAccount(@CurrentPortalUser() user: AuthenticatedPortalUser) {
+    await this.portalUsersService.deleteAccount(user.sub);
     return {
       message: 'Account deleted successfully',
     };
@@ -52,8 +52,8 @@ export class PortalUsersController {
   @ApiOperation({ summary: 'Get user statistics' })
   @ApiResponse({ status: 200, description: 'Statistics retrieved successfully' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  async getUserStats(@CurrentPortalUser() user: any) {
-    const stats = await this.portalUsersService.getUserStats(user.id);
+  async getUserStats(@CurrentPortalUser() user: AuthenticatedPortalUser) {
+    const stats = await this.portalUsersService.getUserStats(user.sub);
     return {
       data: stats,
       message: 'Statistics retrieved successfully',

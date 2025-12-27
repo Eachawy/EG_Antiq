@@ -14,7 +14,7 @@ import { NewsletterService } from './newsletter.service';
 import { SubscribeDto } from './dto/subscribe.dto';
 import { Public } from '../auth/decorators/public.decorator';
 import { PortalJwtAuthGuard } from '../portal-auth/guards/portal-jwt-auth.guard';
-import { CurrentPortalUser } from '../portal-auth/decorators/current-portal-user.decorator';
+import { CurrentPortalUser, AuthenticatedPortalUser } from '../portal-auth/decorators/current-portal-user.decorator';
 
 @ApiTags('Newsletter')
 @Controller('portal/newsletter')
@@ -68,8 +68,8 @@ export class NewsletterController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get subscription status (authenticated)' })
   @ApiResponse({ status: 200, description: 'Status retrieved successfully' })
-  async getStatus(@CurrentPortalUser() user: any) {
-    const status = await this.newsletterService.getStatus(user.id);
+  async getStatus(@CurrentPortalUser() user: AuthenticatedPortalUser) {
+    const status = await this.newsletterService.getStatus(user.sub);
     return {
       data: status,
       message: 'Status retrieved successfully',

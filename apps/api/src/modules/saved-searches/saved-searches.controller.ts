@@ -15,7 +15,7 @@ import { SavedSearchesService } from './saved-searches.service';
 import { CreateSavedSearchDto } from './dto/create-saved-search.dto';
 import { UpdateSavedSearchDto } from './dto/update-saved-search.dto';
 import { PortalJwtAuthGuard } from '../portal-auth/guards/portal-jwt-auth.guard';
-import { CurrentPortalUser } from '../portal-auth/decorators/current-portal-user.decorator';
+import { CurrentPortalUser, AuthenticatedPortalUser } from '../portal-auth/decorators/current-portal-user.decorator';
 
 @ApiTags('Saved Searches')
 @Controller('portal/saved-searches')
@@ -27,8 +27,8 @@ export class SavedSearchesController {
   @Get()
   @ApiOperation({ summary: 'Get all saved searches' })
   @ApiResponse({ status: 200, description: 'Saved searches retrieved successfully' })
-  async getSavedSearches(@CurrentPortalUser() user: any) {
-    const savedSearches = await this.savedSearchesService.getSavedSearches(user.id);
+  async getSavedSearches(@CurrentPortalUser() user: AuthenticatedPortalUser) {
+    const savedSearches = await this.savedSearchesService.getSavedSearches(user.sub);
     return {
       data: savedSearches,
       message: 'Saved searches retrieved successfully',
@@ -39,10 +39,10 @@ export class SavedSearchesController {
   @ApiOperation({ summary: 'Create a new saved search' })
   @ApiResponse({ status: 201, description: 'Saved search created successfully' })
   async createSavedSearch(
-    @CurrentPortalUser() user: any,
+    @CurrentPortalUser() user: AuthenticatedPortalUser,
     @Body() createDto: CreateSavedSearchDto,
   ) {
-    const savedSearch = await this.savedSearchesService.createSavedSearch(user.id, createDto);
+    const savedSearch = await this.savedSearchesService.createSavedSearch(user.sub, createDto);
     return {
       data: savedSearch,
       message: 'Saved search created successfully',
@@ -55,12 +55,12 @@ export class SavedSearchesController {
   @ApiResponse({ status: 404, description: 'Saved search not found' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   async updateSavedSearch(
-    @CurrentPortalUser() user: any,
+    @CurrentPortalUser() user: AuthenticatedPortalUser,
     @Param('id') savedSearchId: string,
     @Body() updateDto: UpdateSavedSearchDto,
   ) {
     const savedSearch = await this.savedSearchesService.updateSavedSearch(
-      user.id,
+      user.sub,
       savedSearchId,
       updateDto,
     );
@@ -76,8 +76,8 @@ export class SavedSearchesController {
   @ApiResponse({ status: 200, description: 'Saved search deleted successfully' })
   @ApiResponse({ status: 404, description: 'Saved search not found' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
-  async deleteSavedSearch(@CurrentPortalUser() user: any, @Param('id') savedSearchId: string) {
-    await this.savedSearchesService.deleteSavedSearch(user.id, savedSearchId);
+  async deleteSavedSearch(@CurrentPortalUser() user: AuthenticatedPortalUser, @Param('id') savedSearchId: string) {
+    await this.savedSearchesService.deleteSavedSearch(user.sub, savedSearchId);
     return {
       message: 'Saved search deleted successfully',
     };
@@ -88,8 +88,8 @@ export class SavedSearchesController {
   @ApiResponse({ status: 200, description: 'Search executed successfully' })
   @ApiResponse({ status: 404, description: 'Saved search not found' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
-  async executeSavedSearch(@CurrentPortalUser() user: any, @Param('id') savedSearchId: string) {
-    const result = await this.savedSearchesService.executeSavedSearch(user.id, savedSearchId);
+  async executeSavedSearch(@CurrentPortalUser() user: AuthenticatedPortalUser, @Param('id') savedSearchId: string) {
+    const result = await this.savedSearchesService.executeSavedSearch(user.sub, savedSearchId);
     return {
       data: result,
       message: 'Search executed successfully',
