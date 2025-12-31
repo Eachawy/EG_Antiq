@@ -506,15 +506,24 @@ export class AdminPortalService {
    */
   async createPortalUser(createDto: any, adminUserId: string) {
     // Check if email already exists
-    const existingUser = await this.prisma.portalUser.findFirst({
+    const existingUser = await this.prisma.portalUser.findUnique({
       where: {
         email: createDto.email,
-        deletedAt: null,
       },
     });
 
     if (existingUser) {
-      throw new AppError('EMAIL_EXISTS', 'Email already in use', 409);
+      if (existingUser.deletedAt === null) {
+        // User exists and is active
+        throw new AppError('EMAIL_EXISTS', 'Email already in use', 409);
+      } else {
+        // User was soft-deleted - inform admin
+        throw new AppError(
+          'PORTAL_USER_DELETED',
+          'A portal user with this email was previously deleted. Please contact support to restore the account.',
+          409,
+        );
+      }
     }
 
     // Create new portal user without password (admin-created users will set password later or use OAuth)
@@ -567,12 +576,21 @@ export class AdminPortalService {
         where: {
           email: updateDto.email,
           id: { not: portalUserId },
-          deletedAt: null,
         },
       });
 
       if (existingUser) {
-        throw new AppError('EMAIL_EXISTS', 'Email already in use by another user', 409);
+        if (existingUser.deletedAt === null) {
+          // Email is in use by another active user
+          throw new AppError('EMAIL_EXISTS', 'Email already in use by another user', 409);
+        } else {
+          // Email belongs to a soft-deleted user
+          throw new AppError(
+            'EMAIL_DELETED_USER',
+            'This email belongs to a deleted user account. Please contact support.',
+            409,
+          );
+        }
       }
     }
 

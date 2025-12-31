@@ -30,6 +30,17 @@ export class UsersService {
           organizationId: true,
           createdAt: true,
           updatedAt: true,
+          userRoles: {
+            select: {
+              role: {
+                select: {
+                  id: true,
+                  name: true,
+                  isSystem: true,
+                },
+              },
+            },
+          },
         },
         orderBy: {
           createdAt: 'desc',
@@ -64,6 +75,17 @@ export class UsersService {
           organizationId: true,
           createdAt: true,
           updatedAt: true,
+          userRoles: {
+            select: {
+              role: {
+                select: {
+                  id: true,
+                  name: true,
+                  isSystem: true,
+                },
+              },
+            },
+          },
         },
       });
 
@@ -94,8 +116,18 @@ export class UsersService {
         where: { email },
       });
 
-      if (existingUser && existingUser.deletedAt === null) {
-        throw new AppError('USER_EXISTS', 'User with this email already exists', 409);
+      if (existingUser) {
+        if (existingUser.deletedAt === null) {
+          // User exists and is active
+          throw new AppError('USER_EXISTS', 'User with this email already exists', 409);
+        } else {
+          // User was soft-deleted - restore instead of creating new
+          throw new AppError(
+            'USER_DELETED',
+            'A user with this email was previously deleted. Please contact support to restore the account.',
+            409,
+          );
+        }
       }
 
       // Hash password
