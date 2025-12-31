@@ -32,6 +32,7 @@ import { PortalSettingsModule } from './modules/portal-settings/portal-settings.
 import { ContactModule } from './modules/contact/contact.module';
 import { NewsletterModule } from './modules/newsletter/newsletter.module';
 import { PortalMonumentsModule } from './modules/portal-monuments/portal-monuments.module';
+import { AdminPortalModule } from './modules/admin-portal/admin-portal.module';
 
 // Database
 import { PrismaService } from './common/services/prisma.service';
@@ -80,6 +81,9 @@ import { EmailService } from './common/services/email.service';
     ContactModule,
     NewsletterModule,
     PortalMonumentsModule,
+
+    // Admin portal management
+    AdminPortalModule,
   ],
   providers: [
     PrismaService,
