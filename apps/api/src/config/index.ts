@@ -1,8 +1,11 @@
 import { z } from 'zod';
 import { config as loadDotenv } from 'dotenv';
+import { join } from 'path';
 
-// Load .env file before validation
-loadDotenv();
+// Load .env file from monorepo root
+// process.cwd() is /Volumes/Data/Ancient/Antiq/EG_Antiq/apps/api
+// Need to go up 2 levels to reach monorepo root
+loadDotenv({ path: join(process.cwd(), '../../.env') });
 
 const configSchema = z.object({
   // Application

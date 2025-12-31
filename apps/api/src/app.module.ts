@@ -13,6 +13,7 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 // Modules
 import { AuthModule } from './modules/auth/auth.module';
 import { RolesModule } from './modules/roles/roles.module';
+import { UsersModule } from './modules/users/users.module';
 import { HealthModule } from './modules/health/health.module';
 import { MonumentsModule } from './modules/monuments/monuments.module';
 import { ErasModule } from './modules/eras/eras.module';
@@ -60,6 +61,7 @@ import { EmailService } from './common/services/email.service';
     // Feature modules
     AuthModule,
     RolesModule,
+    UsersModule,
     HealthModule,
 
     // Monument modules

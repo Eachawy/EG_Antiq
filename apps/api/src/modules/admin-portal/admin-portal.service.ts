@@ -124,6 +124,115 @@ export class AdminPortalService {
   }
 
   /**
+   * Get all favorites across all portal users (Admin view)
+   */
+  async getAllFavorites(filters: { page?: number; limit?: number }) {
+    const { page = 1, limit = 20 } = filters;
+    const skip = (page - 1) * limit;
+
+    const [favorites, total] = await Promise.all([
+      this.prisma.favorite.findMany({
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          portalUser: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+              avatar: true,
+            },
+          },
+          monument: {
+            select: {
+              id: true,
+              monumentNameEn: true,
+              monumentNameAr: true,
+            },
+          },
+        },
+      }),
+      this.prisma.favorite.count(),
+    ]);
+
+    return {
+      data: favorites,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  /**
+   * Create a favorite for a portal user (Admin action)
+   */
+  async createFavoriteForUser(portalUserId: string, monumentId: number, notes: string | undefined, adminUserId: string) {
+    // Verify portal user exists
+    await this.verifyPortalUserExists(portalUserId);
+
+    // Verify monument exists
+    const monument = await this.prisma.monument.findUnique({
+      where: { id: monumentId },
+    });
+
+    if (!monument) {
+      throw new AppError('MONUMENT_NOT_FOUND', 'Monument not found', 404);
+    }
+
+    // Check if already favorited
+    const existing = await this.prisma.favorite.findFirst({
+      where: {
+        portalUserId,
+        monumentId,
+      },
+    });
+
+    if (existing) {
+      throw new AppError('ALREADY_FAVORITED', 'Monument already in favorites', 409);
+    }
+
+    const favorite = await this.prisma.favorite.create({
+      data: {
+        portalUserId,
+        monumentId,
+        notes: notes || null,
+      },
+      include: {
+        portalUser: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            avatar: true,
+          },
+        },
+        monument: {
+          select: {
+            id: true,
+            monumentNameEn: true,
+            monumentNameAr: true,
+          },
+        },
+      },
+    });
+
+    logger.info('Admin created favorite for portal user', {
+      adminUserId,
+      portalUserId,
+      monumentId,
+      favoriteId: favorite.id,
+    });
+
+    return favorite;
+  }
+
+  /**
    * Get portal user's favorites (delegated to FavoritesService)
    */
   async getPortalUserFavorites(portalUserId: string, paginationDto: PaginationDto) {
@@ -180,6 +289,51 @@ export class AdminPortalService {
   }
 
   /**
+   * Get all browsing history across all portal users (Admin view)
+   */
+  async getAllBrowsingHistory(filters: { page?: number; limit?: number }) {
+    const { page = 1, limit = 20 } = filters;
+    const skip = (page - 1) * limit;
+
+    const [history, total] = await Promise.all([
+      this.prisma.browsingHistory.findMany({
+        skip,
+        take: limit,
+        orderBy: { visitedAt: 'desc' },
+        include: {
+          portalUser: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+              avatar: true,
+            },
+          },
+          monument: {
+            select: {
+              id: true,
+              monumentNameEn: true,
+              monumentNameAr: true,
+            },
+          },
+        },
+      }),
+      this.prisma.browsingHistory.count(),
+    ]);
+
+    return {
+      data: history,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  /**
    * Get portal user's browsing history
    */
   async getPortalUserHistory(portalUserId: string, paginationDto: PaginationDto) {
@@ -201,6 +355,86 @@ export class AdminPortalService {
     });
 
     return result;
+  }
+
+  /**
+   * Get all saved searches across all portal users (Admin view)
+   */
+  async getAllSavedSearches(filters: { page?: number; limit?: number }) {
+    const { page = 1, limit = 20 } = filters;
+    const skip = (page - 1) * limit;
+
+    const [savedSearches, total] = await Promise.all([
+      this.prisma.savedSearch.findMany({
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          portalUser: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+              avatar: true,
+            },
+          },
+        },
+      }),
+      this.prisma.savedSearch.count(),
+    ]);
+
+    return {
+      data: savedSearches,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  /**
+   * Create a saved search for a portal user (Admin action)
+   */
+  async createSavedSearchForUser(portalUserId: string, searchData: any, adminUserId: string) {
+    // Verify portal user exists
+    await this.verifyPortalUserExists(portalUserId);
+
+    const savedSearch = await this.prisma.savedSearch.create({
+      data: {
+        portalUserId,
+        name: searchData.name,
+        keyword: searchData.keyword || null,
+        eraIds: searchData.eraIds || [],
+        dynastyIds: searchData.dynastyIds || [],
+        monumentTypeIds: searchData.monumentTypeIds || [],
+        dateFrom: searchData.dateFrom || null,
+        dateTo: searchData.dateTo || null,
+        filters: searchData.filters || {},
+        resultCount: searchData.resultCount || 0,
+      },
+      include: {
+        portalUser: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            avatar: true,
+          },
+        },
+      },
+    });
+
+    logger.info('Admin created saved search for portal user', {
+      adminUserId,
+      portalUserId,
+      savedSearchId: savedSearch.id,
+    });
+
+    return savedSearch;
   }
 
   /**
@@ -265,6 +499,122 @@ export class AdminPortalService {
     });
 
     return settings;
+  }
+
+  /**
+   * Create new portal user
+   */
+  async createPortalUser(createDto: any, adminUserId: string) {
+    // Check if email already exists
+    const existingUser = await this.prisma.portalUser.findFirst({
+      where: {
+        email: createDto.email,
+        deletedAt: null,
+      },
+    });
+
+    if (existingUser) {
+      throw new AppError('EMAIL_EXISTS', 'Email already in use', 409);
+    }
+
+    // Create new portal user without password (admin-created users will set password later or use OAuth)
+    const user = await this.prisma.portalUser.create({
+      data: {
+        email: createDto.email,
+        firstName: createDto.firstName,
+        lastName: createDto.lastName,
+        phone: createDto.phone || null,
+        location: createDto.location || null,
+        bio: createDto.bio || null,
+        avatar: createDto.avatar || null,
+        status: createDto.status || 'ACTIVE',
+        emailVerified: false,
+        passwordHash: null, // Admin-created users have no password initially
+      },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        location: true,
+        bio: true,
+        avatar: true,
+        emailVerified: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    logger.info('Admin created portal user', {
+      adminUserId,
+      portalUserId: user.id,
+    });
+
+    return user;
+  }
+
+  /**
+   * Update portal user details
+   */
+  async updatePortalUser(portalUserId: string, updateDto: any, adminUserId: string) {
+    await this.verifyPortalUserExists(portalUserId);
+
+    // Check if email is being updated and ensure it's unique
+    if (updateDto.email) {
+      const existingUser = await this.prisma.portalUser.findFirst({
+        where: {
+          email: updateDto.email,
+          id: { not: portalUserId },
+          deletedAt: null,
+        },
+      });
+
+      if (existingUser) {
+        throw new AppError('EMAIL_EXISTS', 'Email already in use by another user', 409);
+      }
+    }
+
+    // Build update data object
+    const updateData: any = {
+      updatedAt: new Date(),
+    };
+
+    if (updateDto.email) updateData.email = updateDto.email;
+    if (updateDto.firstName) updateData.firstName = updateDto.firstName;
+    if (updateDto.lastName) updateData.lastName = updateDto.lastName;
+    if (updateDto.phone !== undefined) updateData.phone = updateDto.phone;
+    if (updateDto.location !== undefined) updateData.location = updateDto.location;
+    if (updateDto.bio !== undefined) updateData.bio = updateDto.bio;
+    if (updateDto.avatar !== undefined) updateData.avatar = updateDto.avatar;
+    if (updateDto.status) updateData.status = updateDto.status;
+
+    const user = await this.prisma.portalUser.update({
+      where: { id: portalUserId },
+      data: updateData,
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        location: true,
+        bio: true,
+        avatar: true,
+        emailVerified: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    logger.info('Admin updated portal user', {
+      adminUserId,
+      portalUserId,
+    });
+
+    return user;
   }
 
   /**

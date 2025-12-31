@@ -1,5 +1,10 @@
+import { config } from 'dotenv';
+import { resolve } from 'path';
 import { PrismaClient } from '../node_modules/.prisma/client';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
+
+// Load environment variables from root .env file
+config({ path: resolve(__dirname, '../../../.env') });
 
 const prisma = new PrismaClient();
 
@@ -34,6 +39,7 @@ async function main() {
     { resource: 'settings', action: 'update', description: 'Update settings' },
     { resource: 'audit', action: 'read', description: 'Read audit logs' },
     // Portal management permissions
+    { resource: 'portal-users', action: 'create', description: 'Create portal users' },
     { resource: 'portal-users', action: 'read', description: 'View portal user data' },
     { resource: 'portal-users', action: 'update', description: 'Update portal user data' },
     { resource: 'portal-users', action: 'delete', description: 'Delete portal user data' },

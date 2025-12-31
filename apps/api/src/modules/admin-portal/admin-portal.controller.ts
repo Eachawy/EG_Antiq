@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Post,
   Delete,
   Put,
   Patch,
@@ -19,13 +20,22 @@ import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import { CurrentUser, AuthenticatedUser } from '../../common/decorators/current-user.decorator';
 import { PaginationDto } from '../favorites/dto/pagination.dto';
 import { UpdateSettingsDto } from '../portal-settings/dto/update-settings.dto';
+import { CreatePortalUserDto } from './dto/create-portal-user.dto';
+import { UpdatePortalUserDto } from './dto/update-portal-user.dto';
+import { CreateAdminFavoriteDto } from './dto/create-admin-favorite.dto';
+import { CreateAdminSavedSearchDto } from './dto/create-admin-saved-search.dto';
+import { PrismaService } from '../../common/services/prisma.service';
+import { logger } from '../../logger';
 
 @ApiTags('Admin Portal Management')
 @Controller('admin/portal-users')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @ApiBearerAuth()
 export class AdminPortalController {
-  constructor(private readonly adminPortalService: AdminPortalService) {}
+  constructor(
+    private readonly adminPortalService: AdminPortalService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   // ==================== Portal Users Management ====================
 
@@ -77,6 +87,45 @@ export class AdminPortalController {
     };
   }
 
+  @Post()
+  @RequirePermissions({ resource: 'portal-users', action: 'create' })
+  @ApiOperation({ summary: '[Admin] Create new portal user' })
+  @ApiResponse({ status: 201, description: 'Portal user created successfully' })
+  @ApiResponse({ status: 409, description: 'Email already exists' })
+  @ApiResponse({ status: 400, description: 'Bad request - validation error' })
+  async createPortalUser(
+    @Body() createDto: CreatePortalUserDto,
+    @CurrentUser() admin: AuthenticatedUser,
+  ) {
+    const user = await this.adminPortalService.createPortalUser(createDto, admin.id);
+    return {
+      data: user,
+      message: 'Portal user created successfully',
+    };
+  }
+
+  @Patch(':id')
+  @RequirePermissions({ resource: 'portal-users', action: 'update' })
+  @ApiOperation({ summary: '[Admin] Update portal user details' })
+  @ApiResponse({ status: 200, description: 'Portal user updated successfully' })
+  @ApiResponse({ status: 404, description: 'Portal user not found' })
+  @ApiResponse({ status: 400, description: 'Bad request - validation error' })
+  async updatePortalUser(
+    @Param('id') portalUserId: string,
+    @Body() updateDto: UpdatePortalUserDto,
+    @CurrentUser() admin: AuthenticatedUser,
+  ) {
+    const user = await this.adminPortalService.updatePortalUser(
+      portalUserId,
+      updateDto,
+      admin.id,
+    );
+    return {
+      data: user,
+      message: 'Portal user updated successfully',
+    };
+  }
+
   @Patch(':id/status')
   @RequirePermissions({ resource: 'portal-users', action: 'update' })
   @ApiOperation({ summary: '[Admin] Update portal user status' })
@@ -112,7 +161,73 @@ export class AdminPortalController {
     };
   }
 
-  // ==================== Favorites Management ====================
+  // ==================== All Favorites Management (Admin Global View) ====================
+
+  @Get('favorites/all')
+  @RequirePermissions({ resource: 'portal-favorites', action: 'manage' })
+  @ApiOperation({ summary: '[Admin] Get all favorites across all portal users' })
+  @ApiResponse({ status: 200, description: 'All favorites retrieved successfully' })
+  async getAllFavorites(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    const result = await this.adminPortalService.getAllFavorites({
+      page: page ? +page : 1,
+      limit: limit ? +limit : 20,
+    });
+    return {
+      ...result,
+      message: 'All favorites retrieved successfully',
+    };
+  }
+
+  @Post('favorites')
+  @RequirePermissions({ resource: 'portal-favorites', action: 'manage' })
+  @ApiOperation({ summary: '[Admin] Create a favorite for a portal user' })
+  @ApiResponse({ status: 201, description: 'Favorite created successfully' })
+  @ApiResponse({ status: 404, description: 'Portal user or monument not found' })
+  @ApiResponse({ status: 409, description: 'Already favorited' })
+  async createFavoriteForUser(
+    @Body() createDto: CreateAdminFavoriteDto,
+    @CurrentUser() admin: AuthenticatedUser,
+  ) {
+    const favorite = await this.adminPortalService.createFavoriteForUser(
+      createDto.portalUserId,
+      createDto.monumentId,
+      createDto.notes,
+      admin.id,
+    );
+    return {
+      data: favorite,
+      message: 'Favorite created successfully',
+    };
+  }
+
+  @Delete('favorites/:favoriteId')
+  @HttpCode(HttpStatus.OK)
+  @RequirePermissions({ resource: 'portal-favorites', action: 'manage' })
+  @ApiOperation({ summary: '[Admin] Delete any favorite by ID' })
+  @ApiResponse({ status: 200, description: 'Favorite deleted successfully' })
+  @ApiResponse({ status: 404, description: 'Favorite not found' })
+  async deleteFavoriteById(
+    @Param('favoriteId') favoriteId: string,
+    @CurrentUser() admin: AuthenticatedUser,
+  ) {
+    await this.prisma.favorite.delete({
+      where: { id: favoriteId },
+    });
+
+    logger.info('Admin deleted favorite', {
+      adminUserId: admin.id,
+      favoriteId,
+    });
+
+    return {
+      message: 'Favorite deleted successfully',
+    };
+  }
+
+  // ==================== Per-User Favorites Management ====================
 
   @Get(':id/favorites')
   @RequirePermissions({ resource: 'portal-favorites', action: 'manage' })
@@ -166,6 +281,48 @@ export class AdminPortalController {
 
   // ==================== Browsing History Management ====================
 
+  @Get('history/all')
+  @RequirePermissions({ resource: 'portal-history', action: 'manage' })
+  @ApiOperation({ summary: '[Admin] Get all browsing history across all portal users' })
+  @ApiResponse({ status: 200, description: 'All browsing history retrieved successfully' })
+  async getAllBrowsingHistory(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    const result = await this.adminPortalService.getAllBrowsingHistory({
+      page: page ? +page : 1,
+      limit: limit ? +limit : 20,
+    });
+    return {
+      ...result,
+      message: 'All browsing history retrieved successfully',
+    };
+  }
+
+  @Delete('history/:entryId')
+  @HttpCode(HttpStatus.OK)
+  @RequirePermissions({ resource: 'portal-history', action: 'manage' })
+  @ApiOperation({ summary: '[Admin] Delete any browsing history entry by ID' })
+  @ApiResponse({ status: 200, description: 'Browsing history entry deleted successfully' })
+  @ApiResponse({ status: 404, description: 'Browsing history entry not found' })
+  async deleteBrowsingHistoryById(
+    @Param('entryId') entryId: string,
+    @CurrentUser() admin: AuthenticatedUser,
+  ) {
+    await this.prisma.browsingHistory.delete({
+      where: { id: entryId },
+    });
+
+    logger.info('Admin deleted browsing history entry', {
+      adminUserId: admin.id,
+      entryId,
+    });
+
+    return {
+      message: 'Browsing history entry deleted successfully',
+    };
+  }
+
   @Get(':id/history')
   @RequirePermissions({ resource: 'portal-history', action: 'manage' })
   @ApiOperation({ summary: '[Admin] Get portal user browsing history' })
@@ -197,7 +354,71 @@ export class AdminPortalController {
     };
   }
 
-  // ==================== Saved Searches Management ====================
+  // ==================== All Saved Searches Management (Admin Global View) ====================
+
+  @Get('saved-searches/all')
+  @RequirePermissions({ resource: 'portal-searches', action: 'manage' })
+  @ApiOperation({ summary: '[Admin] Get all saved searches across all portal users' })
+  @ApiResponse({ status: 200, description: 'All saved searches retrieved successfully' })
+  async getAllSavedSearches(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    const result = await this.adminPortalService.getAllSavedSearches({
+      page: page ? +page : 1,
+      limit: limit ? +limit : 20,
+    });
+    return {
+      ...result,
+      message: 'All saved searches retrieved successfully',
+    };
+  }
+
+  @Post('saved-searches')
+  @RequirePermissions({ resource: 'portal-searches', action: 'manage' })
+  @ApiOperation({ summary: '[Admin] Create a saved search for a portal user' })
+  @ApiResponse({ status: 201, description: 'Saved search created successfully' })
+  @ApiResponse({ status: 404, description: 'Portal user not found' })
+  async createSavedSearchForUser(
+    @Body() createDto: CreateAdminSavedSearchDto,
+    @CurrentUser() admin: AuthenticatedUser,
+  ) {
+    const savedSearch = await this.adminPortalService.createSavedSearchForUser(
+      createDto.portalUserId,
+      createDto,
+      admin.id,
+    );
+    return {
+      data: savedSearch,
+      message: 'Saved search created successfully',
+    };
+  }
+
+  @Delete('saved-searches/:searchId')
+  @HttpCode(HttpStatus.OK)
+  @RequirePermissions({ resource: 'portal-searches', action: 'manage' })
+  @ApiOperation({ summary: '[Admin] Delete any saved search by ID' })
+  @ApiResponse({ status: 200, description: 'Saved search deleted successfully' })
+  @ApiResponse({ status: 404, description: 'Saved search not found' })
+  async deleteSavedSearchById(
+    @Param('searchId') searchId: string,
+    @CurrentUser() admin: AuthenticatedUser,
+  ) {
+    await this.prisma.savedSearch.delete({
+      where: { id: searchId },
+    });
+
+    logger.info('Admin deleted saved search', {
+      adminUserId: admin.id,
+      searchId,
+    });
+
+    return {
+      message: 'Saved search deleted successfully',
+    };
+  }
+
+  // ==================== Per-User Saved Searches Management ====================
 
   @Get(':id/saved-searches')
   @RequirePermissions({ resource: 'portal-searches', action: 'manage' })
