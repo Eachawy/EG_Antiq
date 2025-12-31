@@ -33,6 +33,14 @@ async function main() {
     { resource: 'settings', action: 'read', description: 'Read settings' },
     { resource: 'settings', action: 'update', description: 'Update settings' },
     { resource: 'audit', action: 'read', description: 'Read audit logs' },
+    // Portal management permissions
+    { resource: 'portal-users', action: 'read', description: 'View portal user data' },
+    { resource: 'portal-users', action: 'update', description: 'Update portal user data' },
+    { resource: 'portal-users', action: 'delete', description: 'Delete portal user data' },
+    { resource: 'portal-favorites', action: 'manage', description: 'Manage portal user favorites' },
+    { resource: 'portal-history', action: 'manage', description: 'Manage portal user browsing history' },
+    { resource: 'portal-searches', action: 'manage', description: 'Manage portal user saved searches' },
+    { resource: 'portal-settings', action: 'manage', description: 'Manage portal user settings' },
   ];
 
   for (const perm of permissions) {
@@ -125,6 +133,45 @@ async function main() {
   }
 
   console.log('Created member role with permissions');
+
+  // Create portal admin role
+  const portalAdminRole = await prisma.role.upsert({
+    where: {
+      organizationId_name: {
+        organizationId: org.id,
+        name: 'PORTAL_ADMIN',
+      },
+    },
+    update: {},
+    create: {
+      name: 'PORTAL_ADMIN',
+      description: 'Administrator with portal user management access',
+      isSystem: true,
+      organizationId: org.id,
+    },
+  });
+
+  // Assign portal permissions to PORTAL_ADMIN role
+  const portalPermissions = await prisma.permission.findMany({
+    where: { resource: { startsWith: 'portal-' } },
+  });
+  for (const permission of portalPermissions) {
+    await prisma.rolePermission.upsert({
+      where: {
+        roleId_permissionId: {
+          roleId: portalAdminRole.id,
+          permissionId: permission.id,
+        },
+      },
+      update: {},
+      create: {
+        roleId: portalAdminRole.id,
+        permissionId: permission.id,
+      },
+    });
+  }
+
+  console.log('Created portal admin role with permissions');
 
   // Create admin user
   const passwordHash = await bcrypt.hash('Admin123!', 12);
