@@ -1,17 +1,41 @@
 # Deployment Guide - Ancient Egypt Archaeological Sites Platform
 
-This document outlines the complete process for deploying the application to **Staging** and **Production** environments.
+This document outlines the complete process for deploying the application to **Production** using Docker Compose with automated deployment scripts.
 
 ## Table of Contents
 
+- [Quick Start](#quick-start)
 - [Prerequisites](#prerequisites)
 - [Environment Setup](#environment-setup)
-- [Staging Deployment](#staging-deployment)
-- [Production Deployment](#production-deployment)
+- [Automated Deployment](#automated-deployment)
+- [Manual Deployment](#manual-deployment)
+- [SSL/HTTPS Setup](#sslhttps-setup)
+- [Maintenance Operations](#maintenance-operations)
 - [Database Migrations](#database-migrations)
 - [Rollback Procedures](#rollback-procedures)
 - [Monitoring & Health Checks](#monitoring--health-checks)
 - [Troubleshooting](#troubleshooting)
+
+---
+
+## Quick Start
+
+For production deployment with all services (API, Frontend, Nginx, PostgreSQL, Redis):
+
+```bash
+# 1. Configure environment
+cp .env.production.example .env
+nano .env  # Set required variables
+
+# 2. Run automated deployment
+./scripts/deploy.sh
+
+# 3. Setup SSL certificates (optional)
+./scripts/setup-ssl.sh
+
+# 4. View logs
+./scripts/logs.sh all
+```
 
 ---
 
@@ -88,6 +112,431 @@ sudo apt install -y certbot
 
 # Generate SSL certificate
 sudo certbot certonly --standalone -d yourdomain.com -d api.yourdomain.com
+```
+
+---
+
+## Automated Deployment
+
+The application includes automated deployment scripts for production. This is the **recommended deployment method**.
+
+### Architecture Overview
+
+The production stack includes:
+
+- **PostgreSQL** - Database server (port 5433)
+- **Redis** - Cache and session store (port 6379)
+- **NestJS API** - Backend application (port 3000)
+- **React Frontend** - Web application served by Nginx
+- **Nginx Reverse Proxy** - Main entry point (ports 80/443)
+- **Certbot** - SSL certificate management (optional)
+
+### Deployment Script
+
+The `scripts/deploy.sh` script automates the entire deployment process:
+
+```bash
+./scripts/deploy.sh
+```
+
+**What it does:**
+
+1. ✓ Validates environment configuration (.env file)
+2. ✓ Creates required directories (backups, certs, certbot-www)
+3. ✓ Builds Docker images with no cache
+4. ✓ Stops existing containers gracefully
+5. ✓ Starts database and Redis services
+6. ✓ Waits for database to be ready
+7. ✓ Runs Prisma migrations
+8. ✓ Starts API, Frontend, and Nginx services
+9. ✓ Performs health checks
+10. ✓ Displays service status
+
+**Output Example:**
+
+```
+========================================
+  Ancient Egypt Portal - Deployment
+========================================
+
+Step 1: Creating required directories...
+✓ Directories created
+
+Step 2: Building Docker images...
+✓ Build complete
+
+Step 3: Stopping existing containers...
+✓ Stopped
+
+Step 4: Starting services...
+Waiting for database to be ready...
+
+Step 5: Running database migrations...
+✓ Migrations complete
+
+Step 6: Starting API and Frontend...
+✓ All services started
+
+Step 7: Waiting for health checks...
+Checking service status...
+
+========================================
+  Deployment Complete!
+========================================
+
+Application is running at: http://localhost
+API Health: http://localhost/api/v1/health
+```
+
+### Available Deployment Scripts
+
+All scripts are located in the `scripts/` directory:
+
+| Script | Purpose | Usage |
+|--------|---------|-------|
+| `deploy.sh` | Complete deployment automation | `./scripts/deploy.sh` |
+| `setup-ssl.sh` | SSL certificate setup (Let's Encrypt) | `./scripts/setup-ssl.sh` |
+| `backup.sh` | Database backup (keeps last 7) | `./scripts/backup.sh` |
+| `restore.sh` | Database restoration | `./scripts/restore.sh` |
+| `logs.sh` | View service logs | `./scripts/logs.sh [service]` |
+
+### Viewing Logs
+
+The `logs.sh` script provides easy access to service logs:
+
+```bash
+# View all services
+./scripts/logs.sh all
+
+# View specific service with follow (-f)
+./scripts/logs.sh api -f
+
+# View last 100 lines
+./scripts/logs.sh postgres --tail=100
+
+# Available services:
+# - api       (NestJS API)
+# - frontend  (React Frontend)
+# - nginx     (Reverse Proxy)
+# - postgres  (Database)
+# - redis     (Cache)
+```
+
+### SSL Certificate Setup
+
+The `setup-ssl.sh` script automates Let's Encrypt certificate setup:
+
+```bash
+./scripts/setup-ssl.sh
+```
+
+**Prerequisites:**
+- Domain name configured and pointed to server
+- `DOMAIN` and `ADMIN_EMAIL` set in .env file
+- Ports 80 and 443 open in firewall
+
+**What it does:**
+1. Validates domain and email configuration
+2. Obtains SSL certificate from Let's Encrypt
+3. Creates auto-renewal script (`scripts/renew-ssl.sh`)
+4. Provides instructions for enabling HTTPS in Nginx
+
+**Post-setup:**
+After running the script, follow the instructions to:
+1. Uncomment the HTTPS server block in `docker/nginx/nginx.conf`
+2. Restart Nginx: `docker compose -f docker-compose.production.yml restart nginx`
+3. Setup cron job for auto-renewal
+
+### Database Backups
+
+The `backup.sh` script creates compressed database backups:
+
+```bash
+./scripts/backup.sh
+```
+
+**Features:**
+- Creates timestamped backup files
+- Compresses with gzip
+- Automatically keeps last 7 backups
+- Displays backup size and list
+
+**Output:**
+```
+========================================
+  Database Backup
+========================================
+
+Creating backup...
+✓ Backup created: ./backups/antiq_backup_20260101_120000.sql.gz
+
+Backup size: 15M
+
+Cleaning old backups (keeping last 7)...
+Backup complete!
+
+Available backups:
+-rw-r--r-- 1 root root  15M Jan  1 12:00 antiq_backup_20260101_120000.sql.gz
+-rw-r--r-- 1 root root  14M Dec 31 12:00 antiq_backup_20251231_120000.sql.gz
+...
+```
+
+**Automation:**
+Setup daily backups with cron:
+```bash
+sudo crontab -e
+# Add: 0 2 * * * /path/to/EG_Antiq/scripts/backup.sh >> /var/log/db-backup.log 2>&1
+```
+
+### Database Restore
+
+The `restore.sh` script restores from backup:
+
+```bash
+./scripts/restore.sh
+```
+
+**Interactive Process:**
+1. Lists available backups with sizes
+2. Prompts for backup filename
+3. Confirms destructive operation
+4. Decompresses backup
+5. Stops API service
+6. Restores database
+7. Restarts API service
+
+**WARNING:** This replaces the current database. Always create a backup before restoring.
+
+---
+
+## Manual Deployment
+
+If you prefer step-by-step control, follow this manual deployment process.
+
+### Step 1: Clone Repository
+
+```bash
+# Clone repository
+git clone <repository-url>
+cd EG_Antiq
+
+# Make scripts executable
+chmod +x scripts/*.sh
+```
+
+### Step 2: Configure Environment
+
+```bash
+# Copy example environment file
+cp .env.production.example .env
+
+# Edit configuration
+nano .env
+```
+
+**Required Environment Variables:**
+
+```bash
+# Database
+DATABASE_PASSWORD=<strong-password>
+DATABASE_URL=postgresql://postgres:${DATABASE_PASSWORD}@postgres:5433/antiq_production?schema=public
+
+# JWT Secrets
+JWT_SECRET=<generate-with: openssl rand -base64 64>
+PORTAL_JWT_SECRET=<generate-with: openssl rand -base64 64>
+
+# Domain (for SSL)
+DOMAIN=yourdomain.com
+ADMIN_EMAIL=admin@yourdomain.com
+
+# OAuth (optional)
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+FACEBOOK_APP_ID=your-facebook-app-id
+FACEBOOK_APP_SECRET=your-facebook-app-secret
+APPLE_CLIENT_ID=your-apple-client-id
+APPLE_TEAM_ID=your-apple-team-id
+APPLE_KEY_ID=your-apple-key-id
+
+# Email
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USER=your-email@gmail.com
+MAIL_PASSWORD=your-app-password
+MAIL_FROM=noreply@yourdomain.com
+
+# Redis (optional password)
+REDIS_PASSWORD=<strong-password>
+```
+
+### Step 3: Create Required Directories
+
+```bash
+mkdir -p backups certs certbot-www
+```
+
+### Step 4: Build Docker Images
+
+```bash
+docker compose -f docker-compose.production.yml build --no-cache
+```
+
+**Build Process:**
+- API: Multi-stage build with pnpm dependencies
+- Frontend: React build served by Nginx
+- All images optimized for production
+
+### Step 5: Start Database
+
+```bash
+# Start PostgreSQL and Redis
+docker compose -f docker-compose.production.yml up -d postgres redis
+
+# Wait for database to be ready
+sleep 10
+
+# Verify database is running
+docker compose -f docker-compose.production.yml ps postgres
+```
+
+### Step 6: Run Migrations
+
+```bash
+# Run Prisma migrations
+docker compose -f docker-compose.production.yml run --rm api \
+  pnpm --filter @packages/database prisma migrate deploy
+
+# Verify migration status
+docker compose -f docker-compose.production.yml run --rm api \
+  pnpm --filter @packages/database prisma migrate status
+```
+
+### Step 7: Start All Services
+
+```bash
+# Start API, Frontend, and Nginx
+docker compose -f docker-compose.production.yml up -d api frontend nginx
+
+# Wait for health checks
+sleep 15
+
+# Check service status
+docker compose -f docker-compose.production.yml ps
+```
+
+### Step 8: Verify Deployment
+
+```bash
+# Check API health
+curl http://localhost/api/v1/health
+# Expected: {"status":"ok"}
+
+# Check readiness (database connection)
+curl http://localhost/api/v1/health/ready
+# Expected: {"status":"ok","info":{"database":{"status":"up"}}}
+
+# View application logs
+docker compose -f docker-compose.production.yml logs -f api
+```
+
+---
+
+## SSL/HTTPS Setup
+
+### Automatic Setup (Recommended)
+
+Use the automated script:
+
+```bash
+./scripts/setup-ssl.sh
+```
+
+### Manual SSL Setup
+
+#### 1. Obtain Certificate
+
+```bash
+docker compose -f docker-compose.production.yml --profile ssl-setup run --rm certbot
+```
+
+#### 2. Enable HTTPS in Nginx
+
+Edit `docker/nginx/nginx.conf` and uncomment the HTTPS server block (lines marked with `# SSL Configuration`).
+
+#### 3. Restart Nginx
+
+```bash
+docker compose -f docker-compose.production.yml restart nginx
+```
+
+#### 4. Setup Auto-Renewal
+
+Add to crontab:
+```bash
+sudo crontab -e
+# Add:
+0 0 * * * /path/to/EG_Antiq/scripts/renew-ssl.sh >> /var/log/letsencrypt-renew.log 2>&1
+```
+
+---
+
+## Maintenance Operations
+
+### Application Updates
+
+```bash
+# Pull latest code
+git pull origin main
+
+# Rebuild and restart
+docker compose -f docker-compose.production.yml build --no-cache
+docker compose -f docker-compose.production.yml up -d
+
+# Run migrations if needed
+docker compose -f docker-compose.production.yml run --rm api \
+  pnpm --filter @packages/database prisma migrate deploy
+```
+
+### Service Management
+
+```bash
+# Restart specific service
+docker compose -f docker-compose.production.yml restart api
+
+# Stop all services
+docker compose -f docker-compose.production.yml down
+
+# View service status
+docker compose -f docker-compose.production.yml ps
+
+# View resource usage
+docker stats
+```
+
+### Backup Management
+
+```bash
+# Create manual backup
+./scripts/backup.sh
+
+# List available backups
+ls -lh backups/
+
+# Restore from backup
+./scripts/restore.sh
+```
+
+### Log Management
+
+```bash
+# View real-time logs
+./scripts/logs.sh api -f
+
+# Export logs to file
+./scripts/logs.sh api --tail=1000 > api-logs.txt
+
+# Search logs
+./scripts/logs.sh api --tail=1000 | grep ERROR
 ```
 
 ---
@@ -1124,5 +1573,327 @@ For deployment issues, contact:
 
 ---
 
-**Last Updated:** 2025-12-27
-**Version:** 1.0.0
+## Docker Architecture
+
+### Service Configuration
+
+All services are configured in `docker-compose.production.yml`:
+
+| Service | Image | Ports | Resources | Volume |
+|---------|-------|-------|-----------|---------|
+| **postgres** | postgres:15-alpine | 5433 | 2 CPU, 4GB RAM | postgres_production_data |
+| **redis** | redis:7-alpine | 6379 | 1 CPU, 2GB RAM | redis_production_data |
+| **api** | Custom (NestJS) | 3000 | 2 CPU, 4GB RAM | uploads_data |
+| **frontend** | Custom (React+Nginx) | 80 | 1 CPU, 1GB RAM | - |
+| **nginx** | nginx:1.25-alpine | 80, 443 | 1 CPU, 512MB | uploads_data (read-only) |
+| **certbot** | certbot/certbot | - | - | certs, certbot-www |
+
+### Network Architecture
+
+```
+Internet
+   ↓
+Nginx Reverse Proxy (Port 80/443)
+   ↓
+   ├─→ Frontend (React App) - Port 80
+   ├─→ API (NestJS) - Port 3000
+   └─→ Static Files (/uploads)
+        ↓
+   PostgreSQL (Port 5433) ← API
+   Redis (Port 6379) ← API
+```
+
+### Volume Management
+
+**Persistent Data:**
+- `postgres_production_data` - Database files
+- `redis_production_data` - Redis persistence
+- `uploads_data` - User-uploaded files (gallery images)
+
+**Shared Volumes:**
+- `./backups` - Database backups (host mount)
+- `./certs` - SSL certificates (host mount)
+- `./certbot-www` - Let's Encrypt challenge files (host mount)
+
+**View volumes:**
+```bash
+docker volume ls
+docker volume inspect eg_antiq_uploads_data
+```
+
+---
+
+## Quick Reference
+
+### Essential Commands
+
+```bash
+# Deploy everything
+./scripts/deploy.sh
+
+# View logs
+./scripts/logs.sh api -f
+
+# Create backup
+./scripts/backup.sh
+
+# Restore backup
+./scripts/restore.sh
+
+# Setup SSL
+./scripts/setup-ssl.sh
+
+# Restart service
+docker compose -f docker-compose.production.yml restart api
+
+# Check status
+docker compose -f docker-compose.production.yml ps
+
+# View resource usage
+docker stats
+```
+
+### Important File Locations
+
+- **Environment**: `.env`
+- **Docker Compose**: `docker-compose.production.yml`
+- **Nginx Proxy Config**: `docker/nginx/nginx.conf`
+- **Frontend Nginx**: `docker/nginx/frontend.conf`
+- **API Dockerfile**: `docker/api.Dockerfile`
+- **Frontend Dockerfile**: `../EG_Antiq_backend/docker/frontend.Dockerfile`
+- **Deployment Scripts**: `scripts/*.sh`
+- **Backups**: `./backups/`
+- **SSL Certs**: `./certs/`
+
+### Service URLs
+
+- **Application**: `http://yourdomain.com` (or `https://` with SSL)
+- **API Base**: `http://yourdomain.com/api/v1`
+- **API Health**: `http://yourdomain.com/api/v1/health`
+- **API Docs**: `http://yourdomain.com/api/docs` (disable in production)
+- **Static Uploads**: `http://yourdomain.com/uploads/gallery/`
+
+### Default Ports
+
+- **Nginx**: 80 (HTTP), 443 (HTTPS)
+- **API**: 3000 (internal)
+- **Frontend**: 80 (internal)
+- **PostgreSQL**: 5433 (non-standard to avoid conflicts)
+- **Redis**: 6379
+
+### Default Credentials
+
+After initial deployment with seed data:
+- **Admin Email**: `admin@example.com`
+- **Admin Password**: `Admin123!`
+
+**⚠️ CRITICAL**: Change default credentials immediately after first login!
+
+### Resource Limits
+
+Configure in `docker-compose.production.yml`:
+
+```yaml
+deploy:
+  resources:
+    limits:
+      cpus: '2'
+      memory: 4G
+    reservations:
+      memory: 2G
+```
+
+### Health Check Endpoints
+
+- **Liveness**: `GET /api/v1/health` - Always returns 200 if API is running
+- **Readiness**: `GET /api/v1/health/ready` - Returns 200 only if database is connected
+
+### Environment Variables Reference
+
+| Variable | Required | Example | Description |
+|----------|----------|---------|-------------|
+| `DATABASE_PASSWORD` | Yes | `SecurePass123!` | PostgreSQL password |
+| `JWT_SECRET` | Yes | `<64-char-secret>` | Admin JWT secret |
+| `PORTAL_JWT_SECRET` | Yes | `<64-char-secret>` | Portal JWT secret |
+| `DOMAIN` | SSL only | `yourdomain.com` | Domain name for SSL |
+| `ADMIN_EMAIL` | SSL only | `admin@domain.com` | Email for Let's Encrypt |
+| `REDIS_PASSWORD` | Optional | `RedisPass123!` | Redis password |
+| `GOOGLE_CLIENT_ID` | OAuth | `xxx.apps.googleusercontent.com` | Google OAuth |
+| `FACEBOOK_APP_ID` | OAuth | `123456789` | Facebook OAuth |
+| `APPLE_CLIENT_ID` | OAuth | `com.yourapp.service` | Apple Sign In |
+| `MAIL_HOST` | Email | `smtp.gmail.com` | SMTP server |
+| `MAIL_USER` | Email | `noreply@domain.com` | SMTP username |
+| `MAIL_PASSWORD` | Email | `app-password` | SMTP password |
+
+---
+
+## Security Best Practices
+
+### Pre-Deployment
+
+- [ ] Generate unique secrets for each environment (64+ characters)
+- [ ] Use strong database passwords (32+ characters)
+- [ ] Configure OAuth apps for production domain only
+- [ ] Setup firewall rules (allow only 22, 80, 443)
+- [ ] Disable root SSH login
+- [ ] Enable automatic security updates
+
+### Post-Deployment
+
+- [ ] Change default admin credentials
+- [ ] Setup SSL/HTTPS with auto-renewal
+- [ ] Configure automated backups (daily recommended)
+- [ ] Test backup restoration
+- [ ] Setup monitoring and alerts
+- [ ] Review and rotate secrets regularly
+- [ ] Disable API documentation endpoint in production
+- [ ] Configure rate limiting in Nginx
+- [ ] Setup log rotation
+- [ ] Enable database backups to external storage
+
+### Configuration Checks
+
+```bash
+# Verify secrets are strong
+echo $JWT_SECRET | wc -c  # Should be 64+
+
+# Check PostgreSQL is not exposed
+netstat -tuln | grep 5433  # Should only show 127.0.0.1
+
+# Verify SSL is working
+curl -I https://yourdomain.com
+
+# Check rate limiting
+ab -n 200 -c 10 http://yourdomain.com/api/v1/health
+```
+
+---
+
+## Troubleshooting Guide
+
+### Quick Diagnostics
+
+```bash
+# Check all services
+docker compose -f docker-compose.production.yml ps
+
+# Check service health
+docker inspect --format='{{.State.Health.Status}}' <container-name>
+
+# View recent logs
+./scripts/logs.sh all --tail=50
+
+# Check disk space
+df -h
+
+# Check memory usage
+free -h
+
+# Network connectivity
+docker compose -f docker-compose.production.yml exec api ping postgres
+```
+
+### Common Issues
+
+**Issue**: Database connection failed
+```bash
+# Solution 1: Restart database
+docker compose -f docker-compose.production.yml restart postgres
+
+# Solution 2: Check connection string
+docker compose -f docker-compose.production.yml exec api env | grep DATABASE_URL
+```
+
+**Issue**: Uploaded images return 404
+```bash
+# Solution: Verify volume mount
+docker volume inspect eg_antiq_uploads_data
+docker compose -f docker-compose.production.yml restart nginx
+```
+
+**Issue**: High memory usage
+```bash
+# Solution: Check stats and restart
+docker stats --no-stream
+docker compose -f docker-compose.production.yml restart
+```
+
+**Issue**: SSL certificate expired
+```bash
+# Solution: Renew certificate
+./scripts/renew-ssl.sh
+docker compose -f docker-compose.production.yml restart nginx
+```
+
+### Emergency Procedures
+
+**Complete system restart:**
+```bash
+docker compose -f docker-compose.production.yml down
+docker system prune -f
+docker compose -f docker-compose.production.yml up -d
+```
+
+**Database recovery:**
+```bash
+# Stop API
+docker compose -f docker-compose.production.yml stop api
+
+# Restore from backup
+./scripts/restore.sh
+
+# Start API
+docker compose -f docker-compose.production.yml start api
+```
+
+---
+
+## Performance Optimization
+
+### Nginx Caching
+
+Add to `docker/nginx/nginx.conf`:
+
+```nginx
+proxy_cache_path /var/cache/nginx levels=1:2 keys_zone=api_cache:10m max_size=1g inactive=60m;
+
+location /api/ {
+    proxy_cache api_cache;
+    proxy_cache_valid 200 5m;
+    proxy_cache_key $scheme$request_method$host$request_uri;
+    add_header X-Cache-Status $upstream_cache_status;
+}
+```
+
+### Database Optimization
+
+```bash
+# Connect to database
+docker compose -f docker-compose.production.yml exec postgres psql -U postgres -d antiq_production
+
+# Run VACUUM ANALYZE
+VACUUM ANALYZE;
+
+# Check query performance
+SELECT query, mean_exec_time, calls
+FROM pg_stat_statements
+ORDER BY mean_exec_time DESC
+LIMIT 10;
+```
+
+### Container Resource Tuning
+
+Monitor and adjust in `docker-compose.production.yml`:
+
+```yaml
+deploy:
+  resources:
+    limits:
+      cpus: '4'  # Increase for better performance
+      memory: 8G  # Increase if needed
+```
+
+---
+
+**Last Updated:** 2026-01-01
+**Version:** 2.0.0 - Complete Docker Stack with Automated Deployment

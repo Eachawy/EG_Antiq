@@ -73,8 +73,8 @@ services:
       NODE_ENV: production
       DATABASE_URL: postgresql://postgres:${DATABASE_PASSWORD}@postgres:5433/antiq_production?schema=public
       LOG_LEVEL: info
-    ports:
-      - '127.0.0.1:3000:3000'  # Only localhost access (behind Nginx)
+    volumes:
+      - uploads_data:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -92,7 +92,7 @@ services:
           cpus: '2'
           memory: 2G
     healthcheck:
-      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:3000/api/v1/health']
+      test: ['CMD', 'node', '-e', "require('http').get('http://localhost:3000/api/v1/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -103,6 +103,84 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  # Frontend Application
+  frontend:
+    build:
+      context: ../EG_Antiq_backend
+      dockerfile: docker/frontend.Dockerfile
+      target: production
+    container_name: production-frontend
+    restart: always
+    networks:
+      - production-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          memory: 256M
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost/health']
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: production-nginx
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - uploads_data:/app/uploads:ro
+      - ./certs:/etc/letsencrypt:ro
+      - ./certbot-www:/var/www/certbot:ro
+    depends_on:
+      - api
+      - frontend
+    networks:
+      - production-network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          memory: 256M
+    healthcheck:
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost/health']
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Certbot for SSL (Let's Encrypt)
+  certbot:
+    image: certbot/certbot:latest
+    container_name: production-certbot
+    volumes:
+      - ./certs:/etc/letsencrypt
+      - ./certbot-www:/var/www/certbot
+    networks:
+      - production-network
+    command: certonly --webroot --webroot-path=/var/www/certbot --email ${ADMIN_EMAIL} --agree-tos --no-eff-email -d ${DOMAIN}
+    profiles:
+      - ssl-setup
+
 networks:
   production-network:
     driver: bridge
@@ -111,4 +189,6 @@ volumes:
   postgres_production_data:
     driver: local
   redis_production_data:
+    driver: local
+  uploads_data:
     driver: local
