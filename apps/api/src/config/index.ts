@@ -1,11 +1,17 @@
 import { z } from 'zod';
+import { config as loadDotenv } from 'dotenv';
+import { join } from 'path';
+
+// Load .env file from monorepo root
+// process.cwd() is /Volumes/Data/Ancient/Antiq/EG_Antiq/apps/api
+// Need to go up 2 levels to reach monorepo root
+loadDotenv({ path: join(process.cwd(), '../../.env') });
 
 const configSchema = z.object({
   // Application
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.string().transform(Number).default('3000'),
-  APP_VERSION: z.string().default('1.0.0'),
-  SERVICE_NAME: z.string().default('api'),
+  API_URL: z.string().url().default('http://localhost:3000'), // Required for OAuth callbacks
 
   // Database
   DATABASE_URL: z.string().url(),
@@ -15,19 +21,26 @@ const configSchema = z.object({
   JWT_ACCESS_TOKEN_TTL: z.string().default('15m'),
   JWT_REFRESH_TOKEN_TTL: z.string().default('7d'),
 
+  // Portal JWT
+  PORTAL_JWT_SECRET: z.string().min(32),
+  PORTAL_JWT_ACCESS_TOKEN_TTL: z.string().default('15m'),
+  PORTAL_JWT_REFRESH_TOKEN_TTL: z.string().default('7d'),
+
+  // OAuth
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  FACEBOOK_APP_ID: z.string().optional(),
+  FACEBOOK_APP_SECRET: z.string().optional(),
+  APPLE_CLIENT_ID: z.string().optional(),
+  APPLE_TEAM_ID: z.string().optional(),
+  APPLE_KEY_ID: z.string().optional(),
+  APPLE_PRIVATE_KEY_PATH: z.string().optional(),
+
   // Security
   CORS_ORIGINS: z.string().transform((s) => s.split(',')).default('http://localhost:3000'),
 
   // Observability
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
-
-  // Rate Limiting
-  RATE_LIMIT_ENABLED: z
-    .string()
-    .transform((s) => s === 'true')
-    .default('true'),
-  RATE_LIMIT_MAX: z.string().transform(Number).default('1000'),
-  RATE_LIMIT_WINDOW_MS: z.string().transform(Number).default('3600000'),
 
   // Email
   EMAIL_HOST: z.string().default('smtp.gmail.com'),

@@ -13,6 +13,7 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 // Modules
 import { AuthModule } from './modules/auth/auth.module';
 import { RolesModule } from './modules/roles/roles.module';
+import { UsersModule } from './modules/users/users.module';
 import { HealthModule } from './modules/health/health.module';
 import { MonumentsModule } from './modules/monuments/monuments.module';
 import { ErasModule } from './modules/eras/eras.module';
@@ -21,6 +22,19 @@ import { MonumentTypesModule } from './modules/monument-types/monument-types.mod
 import { DescriptionMonumentsModule } from './modules/description-monuments/description-monuments.module';
 import { MonumentsEraModule } from './modules/monuments-era/monuments-era.module';
 import { GalleryModule } from './modules/gallery/gallery.module';
+import { UploadModule } from './modules/upload/upload.module';
+
+// Portal modules
+import { PortalAuthModule } from './modules/portal-auth/portal-auth.module';
+import { PortalUsersModule } from './modules/portal-users/portal-users.module';
+import { FavoritesModule } from './modules/favorites/favorites.module';
+import { BrowsingHistoryModule } from './modules/browsing-history/browsing-history.module';
+import { SavedSearchesModule } from './modules/saved-searches/saved-searches.module';
+import { PortalSettingsModule } from './modules/portal-settings/portal-settings.module';
+import { ContactModule } from './modules/contact/contact.module';
+import { NewsletterModule } from './modules/newsletter/newsletter.module';
+import { PortalMonumentsModule } from './modules/portal-monuments/portal-monuments.module';
+import { AdminPortalModule } from './modules/admin-portal/admin-portal.module';
 
 // Database
 import { PrismaService } from './common/services/prisma.service';
@@ -48,6 +62,7 @@ import { EmailService } from './common/services/email.service';
     // Feature modules
     AuthModule,
     RolesModule,
+    UsersModule,
     HealthModule,
 
     // Monument modules
@@ -58,6 +73,21 @@ import { EmailService } from './common/services/email.service';
     DescriptionMonumentsModule,
     MonumentsEraModule,
     GalleryModule,
+    UploadModule,
+
+    // Portal modules
+    PortalAuthModule,
+    PortalUsersModule,
+    FavoritesModule,
+    BrowsingHistoryModule,
+    SavedSearchesModule,
+    PortalSettingsModule,
+    ContactModule,
+    NewsletterModule,
+    PortalMonumentsModule,
+
+    // Admin portal management
+    AdminPortalModule,
   ],
   providers: [
     PrismaService,

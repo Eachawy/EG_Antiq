@@ -25,7 +25,7 @@ export class AuthService {
    * Register a new user
    */
   async register(registerDto: RegisterDto): Promise<AuthResponse> {
-    const { email, password, firstName, lastName } = registerDto;
+    const { email, password, firstName, lastName, organizationId } = registerDto;
 
     // Check if user already exists
     const existingUser = await this.prisma.user.findUnique({
@@ -46,6 +46,7 @@ export class AuthService {
         passwordHash,
         firstName,
         lastName,
+        organizationId,
       },
     });
 
@@ -90,7 +91,7 @@ export class AuthService {
     }
 
     // Check if user is active
-    if (!user.isActive) {
+    if (user.status !== 'ACTIVE') {
       throw new AppError('USER_INACTIVE', 'User account is inactive', 403);
     }
 
@@ -176,7 +177,7 @@ export class AuthService {
       where: { id: userId },
     });
 
-    if (!user || !user.isActive) {
+    if (!user || user.status !== 'ACTIVE') {
       return null;
     }
 
@@ -185,6 +186,7 @@ export class AuthService {
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
+      organizationId: user.organizationId,
     };
   }
 

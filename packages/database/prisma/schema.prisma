@@ -1,6 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
-  output   = "../node_modules/.prisma/client"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -13,20 +13,22 @@ datasource db {
 // ============================================
 
 model User {
-  id             String      @id @default(uuid()) @db.Uuid
-  email          String      @unique @db.VarChar(255)
-  passwordHash   String      @db.VarChar(255)
-  firstName      String      @db.VarChar(100)
-  lastName       String      @db.VarChar(100)
-  status         UserStatus  @default(ACTIVE)
-  emailVerified  Boolean     @default(false)
+  id                    String      @id @default(uuid()) @db.Uuid
+  email                 String      @unique @db.VarChar(255)
+  passwordHash          String      @db.VarChar(255)
+  firstName             String      @db.VarChar(100)
+  lastName              String      @db.VarChar(100)
+  status                UserStatus  @default(ACTIVE)
+  emailVerified         Boolean     @default(false)
+  resetPasswordToken    String?     @db.VarChar(255)
+  resetPasswordExpires  DateTime?   @db.Timestamptz
 
   // Multi-tenancy
   organizationId String       @db.Uuid
   organization   Organization @relation(fields: [organizationId], references: [id])
 
   // RBAC
-  roles          UserRole[]
+  userRoles      UserRole[] @relation("userRoles")
 
   // Audit fields
   createdAt      DateTime  @default(now()) @db.Timestamptz
@@ -146,7 +148,7 @@ model Role {
   permissions    RolePermission[]
 
   // Users with this role
-  users          UserRole[]
+  userRoles      UserRole[] @relation("roleUsers")
 
   // Audit fields
   createdAt      DateTime  @default(now()) @db.Timestamptz
@@ -178,9 +180,9 @@ model Permission {
 // Join table for User-Role many-to-many
 model UserRole {
   userId         String   @db.Uuid
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User     @relation("userRoles", fields: [userId], references: [id], onDelete: Cascade)
   roleId         String   @db.Uuid
-  role           Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  role           Role     @relation("roleUsers", fields: [roleId], references: [id], onDelete: Cascade)
 
   assignedAt     DateTime @default(now()) @db.Timestamptz
   assignedBy     String?  @db.Uuid
@@ -355,24 +357,31 @@ model Monument {
   createdAt           DateTime? @default(now()) @map("created_at") @db.Timestamp
 
   // Relations
-  monumentType MonumentType @relation(fields: [monumentsTypeId], references: [id])
-  era          Era          @relation(fields: [eraId], references: [id])
-  dynasty      Dynasty      @relation(fields: [dynastyId], references: [id])
-  galleries    Gallery[]
+  monumentType          MonumentType          @relation(fields: [monumentsTypeId], references: [id])
+  era                   Era                   @relation(fields: [eraId], references: [id])
+  dynasty               Dynasty               @relation(fields: [dynastyId], references: [id])
+  galleries             Gallery[]
+  monumentDescriptions  DescriptionMonument[]
+  monumentsEra          MonumentEra[]
+  favorites             Favorite[]
+  browsingHistory       BrowsingHistory[]
 
   @@map("monuments")
 }
 
 model MonumentEra {
   id               Int       @id @default(autoincrement())
+  monumentId       Int?      @map("monument_id")
   eraId            Int       @map("era_id")
   monumentsTypeId  Int       @map("monuments_type_id")
   createdAt        DateTime? @default(now()) @map("created_at") @db.Timestamp
 
   // Relations
+  monument     Monument?    @relation(fields: [monumentId], references: [id], onDelete: Cascade)
   era          Era          @relation(fields: [eraId], references: [id])
   monumentType MonumentType @relation(fields: [monumentsTypeId], references: [id])
 
+  @@index([monumentId])
   @@map("monuments_era")
 }
 
@@ -398,15 +407,216 @@ model DescriptionMonument {
   id               Int       @id @default(autoincrement())
   descriptionAr    String    @map("description_ar") @db.VarChar
   descriptionEn    String    @map("description_en") @db.VarChar
+  monumentId       Int?      @map("monument_id")
   eraId            Int       @map("era_id")
   monumentsTypeId  Int       @map("monuments_type_id")
   dynastyId        Int       @map("dynasty_id")
   createdAt        DateTime? @default(now()) @map("created_at") @db.Timestamp
 
   // Relations
+  monument     Monument?    @relation(fields: [monumentId], references: [id], onDelete: Cascade)
   era          Era          @relation(fields: [eraId], references: [id])
   monumentType MonumentType @relation(fields: [monumentsTypeId], references: [id])
   dynasty      Dynasty      @relation(fields: [dynastyId], references: [id])
 
+  @@index([monumentId])
   @@map("description_monuments")
+}
+
+// ============================================
+// PORTAL DOMAIN
+// ============================================
+
+model PortalUser {
+  id                    String              @id @default(uuid()) @db.Uuid
+  email                 String              @unique @db.VarChar(255)
+  passwordHash          String?             @db.VarChar(255)  // Nullable for OAuth-only users
+  firstName             String              @db.VarChar(100)
+  lastName              String              @db.VarChar(100)
+  phone                 String?             @db.VarChar(50)
+  location              String?             @db.VarChar(255)
+  bio                   String?             @db.Text
+  avatar                String?             @db.VarChar(500)
+  status                PortalUserStatus    @default(ACTIVE)
+  emailVerified         Boolean             @default(false)
+  resetPasswordToken    String?             @db.VarChar(255)
+  resetPasswordExpires  DateTime?           @db.Timestamptz
+  createdAt             DateTime            @default(now()) @db.Timestamptz
+  updatedAt             DateTime            @updatedAt @db.Timestamptz
+  deletedAt             DateTime?           @db.Timestamptz
+  lastLoginAt           DateTime?           @db.Timestamptz
+
+  oauthProviders        OAuthProvider[]
+  favorites             Favorite[]
+  browsingHistory       BrowsingHistory[]
+  savedSearches         SavedSearch[]
+  settings              UserSettings?
+  refreshTokens         PortalRefreshToken[]
+  contactMessages       ContactMessage[]
+  newsletterSubscription NewsletterSubscription?
+
+  @@index([email])
+  @@index([status])
+  @@map("portal_users")
+}
+
+enum PortalUserStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+  DEACTIVATED
+}
+
+model OAuthProvider {
+  id            String              @id @default(uuid()) @db.Uuid
+  portalUserId  String              @db.Uuid
+  portalUser    PortalUser          @relation(fields: [portalUserId], references: [id], onDelete: Cascade)
+  provider      OAuthProviderType
+  providerId    String              @db.VarChar(255)
+  accessToken   String?             @db.Text
+  refreshToken  String?             @db.Text
+  expiresAt     DateTime?           @db.Timestamptz
+  profileData   Json?
+  createdAt     DateTime            @default(now()) @db.Timestamptz
+  updatedAt     DateTime            @updatedAt @db.Timestamptz
+
+  @@unique([provider, providerId])
+  @@index([portalUserId])
+  @@map("oauth_providers")
+}
+
+enum OAuthProviderType {
+  GOOGLE
+  FACEBOOK
+  APPLE
+}
+
+model PortalRefreshToken {
+  id           String      @id @default(uuid()) @db.Uuid
+  portalUserId String      @db.Uuid
+  portalUser   PortalUser  @relation(fields: [portalUserId], references: [id], onDelete: Cascade)
+  token        String      @unique @db.VarChar(255)
+  expiresAt    DateTime    @db.Timestamptz
+  isRevoked    Boolean     @default(false)
+  createdAt    DateTime    @default(now()) @db.Timestamptz
+  revokedAt    DateTime?   @db.Timestamptz
+
+  @@index([portalUserId])
+  @@index([token])
+  @@map("portal_refresh_tokens")
+}
+
+model Favorite {
+  id           String      @id @default(uuid()) @db.Uuid
+  portalUserId String      @db.Uuid
+  portalUser   PortalUser  @relation(fields: [portalUserId], references: [id], onDelete: Cascade)
+  monumentId   Int
+  monument     Monument    @relation(fields: [monumentId], references: [id], onDelete: Cascade)
+  notes        String?     @db.Text
+  createdAt    DateTime    @default(now()) @db.Timestamptz
+
+  @@unique([portalUserId, monumentId])
+  @@index([portalUserId])
+  @@index([monumentId])
+  @@map("favorites")
+}
+
+model BrowsingHistory {
+  id              String      @id @default(uuid()) @db.Uuid
+  portalUserId    String      @db.Uuid
+  portalUser      PortalUser  @relation(fields: [portalUserId], references: [id], onDelete: Cascade)
+  monumentId      Int
+  monument        Monument    @relation(fields: [monumentId], references: [id], onDelete: Cascade)
+  visitedAt       DateTime    @default(now()) @db.Timestamptz
+  durationSeconds Int?
+
+  @@index([portalUserId])
+  @@index([monumentId])
+  @@index([visitedAt])
+  @@map("browsing_history")
+}
+
+model SavedSearch {
+  id              String      @id @default(uuid()) @db.Uuid
+  portalUserId    String      @db.Uuid
+  portalUser      PortalUser  @relation(fields: [portalUserId], references: [id], onDelete: Cascade)
+  name            String      @db.VarChar(255)
+  keyword         String?     @db.VarChar(500)
+  eraIds          Int[]
+  dynastyIds      Int[]
+  monumentTypeIds Int[]
+  dateFrom        String?     @db.VarChar(100)
+  dateTo          String?     @db.VarChar(100)
+  filters         Json
+  resultCount     Int?
+  lastRunAt       DateTime?   @db.Timestamptz
+  createdAt       DateTime    @default(now()) @db.Timestamptz
+  updatedAt       DateTime    @updatedAt @db.Timestamptz
+
+  @@index([portalUserId])
+  @@map("saved_searches")
+}
+
+model UserSettings {
+  id                  String      @id @default(uuid()) @db.Uuid
+  portalUserId        String      @unique @db.Uuid
+  portalUser          PortalUser  @relation(fields: [portalUserId], references: [id], onDelete: Cascade)
+  darkMode            Boolean     @default(false)
+  language            String      @default("en") @db.VarChar(10)
+  emailNotifications  Boolean     @default(true)
+  pushNotifications   Boolean     @default(false)
+  newsletterEnabled   Boolean     @default(true)
+  siteUpdates         Boolean     @default(false)
+  showBrowsingHistory Boolean     @default(true)
+  autoSaveSearches    Boolean     @default(true)
+  additionalSettings  Json        @default("{}")
+  createdAt           DateTime    @default(now()) @db.Timestamptz
+  updatedAt           DateTime    @updatedAt @db.Timestamptz
+
+  @@map("user_settings")
+}
+
+model ContactMessage {
+  id           String               @id @default(uuid()) @db.Uuid
+  portalUserId String?              @db.Uuid
+  portalUser   PortalUser?          @relation(fields: [portalUserId], references: [id], onDelete: SetNull)
+  name         String               @db.VarChar(255)
+  email        String               @db.VarChar(255)
+  message      String               @db.Text
+  status       ContactMessageStatus @default(PENDING)
+  ipAddress    String?              @db.VarChar(45)
+  userAgent    String?              @db.Text
+  respondedAt  DateTime?            @db.Timestamptz
+  respondedBy  String?              @db.Uuid
+  response     String?              @db.Text
+  createdAt    DateTime             @default(now()) @db.Timestamptz
+
+  @@index([portalUserId])
+  @@index([status])
+  @@index([email])
+  @@map("contact_messages")
+}
+
+enum ContactMessageStatus {
+  PENDING
+  IN_PROGRESS
+  RESPONDED
+  CLOSED
+}
+
+model NewsletterSubscription {
+  id                String      @id @default(uuid()) @db.Uuid
+  portalUserId      String?     @unique @db.Uuid
+  portalUser        PortalUser? @relation(fields: [portalUserId], references: [id], onDelete: Cascade)
+  email             String      @unique @db.VarChar(255)
+  isSubscribed      Boolean     @default(true)
+  verificationToken String?     @db.VarChar(255)
+  verifiedAt        DateTime?   @db.Timestamptz
+  unsubscribeToken  String      @unique @db.VarChar(255)
+  subscribedAt      DateTime    @default(now()) @db.Timestamptz
+  unsubscribedAt    DateTime?   @db.Timestamptz
+
+  @@index([email])
+  @@index([isSubscribed])
+  @@map("newsletter_subscriptions")
 }

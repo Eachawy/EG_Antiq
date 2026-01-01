@@ -43,19 +43,16 @@ services:
       dockerfile: docker/api.Dockerfile
       target: production
     container_name: backend-api
+    env_file:
+      - .env
     environment:
       NODE_ENV: production
-      PORT: 3000
       DATABASE_URL: postgresql://postgres:Antiq_dev@postgres:5433/Antiq_db?schema=public
-      REDIS_URL: redis://redis:6379
-      JWT_SECRET: your-super-secret-key-min-32-characters-long-change-in-production
-      JWT_ACCESS_TOKEN_TTL: 15m
-      JWT_REFRESH_TOKEN_TTL: 7d
-      BCRYPT_ROUNDS: 10
-      CORS_ORIGINS: http://localhost:3000,http://localhost:3001
       LOG_LEVEL: info
     ports:
       - '3000:3000'
+    volumes:
+      - uploads_data:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -72,16 +69,11 @@ services:
       dockerfile: docker/api.Dockerfile
       target: builder
     container_name: backend-api-dev
+    env_file:
+      - .env
     environment:
       NODE_ENV: development
-      PORT: 3000
       DATABASE_URL: postgresql://postgres:Antiq_dev@postgres:5433/Antiq_db?schema=public
-      REDIS_URL: redis://redis:6379
-      JWT_SECRET: dev-secret-key-min-32-characters-long-for-development-only
-      JWT_ACCESS_TOKEN_TTL: 15m
-      JWT_REFRESH_TOKEN_TTL: 7d
-      BCRYPT_ROUNDS: 10
-      CORS_ORIGINS: http://localhost:3000,http://localhost:3001
       LOG_LEVEL: debug
     ports:
       - '3001:3000'
@@ -107,3 +99,4 @@ networks:
 volumes:
   postgres_data:
   redis_data:
+  uploads_data:

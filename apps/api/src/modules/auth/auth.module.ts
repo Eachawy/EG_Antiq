@@ -5,6 +5,7 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { RolesGuard } from './guards/roles.guard';
+import { PermissionsGuard } from './guards/permissions.guard';
 import { PrismaService } from '../../common/services/prisma.service';
 import { EmailService } from '../../common/services/email.service';
 import { config } from '../../config';
@@ -18,7 +19,7 @@ import { config } from '../../config';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, RolesGuard, PrismaService, EmailService],
-  exports: [AuthService, RolesGuard],
+  providers: [AuthService, JwtStrategy, RolesGuard, PermissionsGuard, PrismaService, EmailService],
+  exports: [AuthService, RolesGuard, PermissionsGuard],
 })
 export class AuthModule {}

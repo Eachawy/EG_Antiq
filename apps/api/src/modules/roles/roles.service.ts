@@ -13,10 +13,15 @@ export class RolesService {
   /**
    * Create a new role
    */
-  async create(createRoleDto: CreateRoleDto) {
-    // Check if role name already exists
+  async create(createRoleDto: CreateRoleDto, organizationId: string) {
+    // Check if role name already exists in this organization
     const existing = await this.prisma.role.findUnique({
-      where: { name: createRoleDto.name },
+      where: {
+        organizationId_name: {
+          organizationId,
+          name: createRoleDto.name,
+        },
+      },
     });
 
     if (existing) {
@@ -24,7 +29,10 @@ export class RolesService {
     }
 
     const role = await this.prisma.role.create({
-      data: createRoleDto,
+      data: {
+        ...createRoleDto,
+        organizationId,
+      },
     });
 
     logger.info('Role created', { roleId: role.id, name: role.name });
@@ -81,12 +89,13 @@ export class RolesService {
    * Update a role
    */
   async update(id: string, updateRoleDto: UpdateRoleDto) {
-    await this.findOne(id);
+    const existingRole = await this.findOne(id);
 
-    // Check if new name conflicts with existing role
+    // Check if new name conflicts with existing role in same organization
     if (updateRoleDto.name) {
       const existing = await this.prisma.role.findFirst({
         where: {
+          organizationId: existingRole.organizationId,
           name: updateRoleDto.name,
           id: { not: id },
         },
@@ -212,7 +221,10 @@ export class RolesService {
 
     await this.prisma.userRole.delete({
       where: {
-        id: userRole.id,
+        userId_roleId: {
+          userId,
+          roleId,
+        },
       },
     });
 
@@ -236,7 +248,7 @@ export class RolesService {
             email: true,
             firstName: true,
             lastName: true,
-            isActive: true,
+            status: true,
             createdAt: true,
           },
         },

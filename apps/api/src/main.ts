@@ -1,6 +1,8 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { config } from './config';
@@ -8,12 +10,34 @@ import { logger } from './logger';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: ['error', 'warn', 'log'],
   });
 
-  // Security middleware
-  app.use(helmet());
+  // Serve static files (uploaded images)
+  // In production (Docker): __dirname = /app/dist, so we need /app/uploads
+  // In development: adjust path accordingly
+  const uploadsPath = process.env.NODE_ENV === 'production'
+    ? '/app/uploads'
+    : join(__dirname, '..', '..', 'uploads');
+
+  app.useStaticAssets(uploadsPath, {
+    prefix: '/uploads/',
+  });
+
+  // Security middleware - Configure helmet to allow SVG files
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+        },
+      },
+    })
+  );
 
   // CORS configuration
   app.enableCors({
@@ -46,8 +70,8 @@ async function bootstrap() {
       },
       'JWT-auth'
     )
-    .addTag('Authentication', 'User authentication and authorization endpoints')
-    .addTag('Monuments', 'Ancient monuments and sites management')
+    .addTag('Authentication', 'Admin authentication and authorization endpoints')
+    .addTag('Monuments', 'Ancient monuments and sites management (Admin)')
     .addTag('Gallery', 'Monument gallery images management')
     .addTag('Descriptions', 'Monument descriptions management')
     .addTag('Eras', 'Historical eras management')
@@ -56,6 +80,16 @@ async function bootstrap() {
     .addTag('Monuments Era', 'Monument era relationships')
     .addTag('Roles', 'User roles and permissions management')
     .addTag('Health', 'API health check endpoints')
+    .addTag('Portal Auth', 'Portal user authentication (email/password + OAuth)')
+    .addTag('Portal Users', 'Portal user profile management')
+    .addTag('Portal Monuments', 'Public monument search and browsing')
+    .addTag('Favorites', 'User favorites management')
+    .addTag('Browsing History', 'User browsing history tracking')
+    .addTag('Saved Searches', 'User saved searches management')
+    .addTag('Portal Settings', 'User settings and preferences')
+    .addTag('Contact', 'Contact form submissions')
+    .addTag('Newsletter', 'Newsletter subscription management')
+    .addTag('Upload', 'File upload endpoints')
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
@@ -91,7 +125,7 @@ async function bootstrap() {
   logger.info(`Application started successfully`, {
     port,
     environment: config.NODE_ENV,
-    version: config.APP_VERSION,
+    version: '1.0.0',
   });
 
   // Handle shutdown signals

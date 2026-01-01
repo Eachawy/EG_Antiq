@@ -6,6 +6,7 @@ import { UpdateRoleDto } from './dto/update-role.dto';
 import { AssignRoleDto } from './dto/assign-role.dto';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser, AuthenticatedUser } from '../../common/decorators/current-user.decorator';
 
 @ApiTags('Roles')
 @ApiBearerAuth('JWT-auth')
@@ -21,8 +22,8 @@ export class RolesController {
   @ApiResponse({ status: 201, description: 'Role created successfully' })
   @ApiResponse({ status: 400, description: 'Bad request - validation error' })
   @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
-  async create(@Body() createRoleDto: CreateRoleDto) {
-    const role = await this.rolesService.create(createRoleDto);
+  async create(@Body() createRoleDto: CreateRoleDto, @CurrentUser() user: AuthenticatedUser) {
+    const role = await this.rolesService.create(createRoleDto, user.organizationId);
     return {
       data: role,
       message: 'Role created successfully',
