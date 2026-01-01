@@ -1,8 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../common/services/prisma.service';
 import { NotFoundError } from '../../common/errors/base.error';
 import { CreateMonumentDto } from './dto/create-monument.dto';
 import { UpdateMonumentDto } from './dto/update-monument.dto';
+import { parse } from 'csv-parse/sync';
+import { logger } from '../../logger';
 
 @Injectable()
 export class MonumentsService {
@@ -213,5 +215,87 @@ export class MonumentsService {
     });
 
     return { message: 'Monument deleted successfully' };
+  }
+
+  /**
+   * Import monuments from CSV file
+   * CSV columns: monumentNameAr,monumentNameEn,monumentBiographyAr,monumentBiographyEn,lat,lng,image,mDate,monumentsTypeId,eraId,dynastyId,zoom,center,descriptionEn,descriptionAr
+   */
+  async importFromCsv(file: Express.Multer.File) {
+    try {
+      const csvContent = file.buffer.toString('utf-8');
+
+      // Parse CSV - returns array of objects with string values
+      const records = parse(csvContent, {
+        columns: true,
+        skip_empty_lines: true,
+        trim: true,
+      }) as Record<string, string>[];
+
+      let created = 0;
+      let errors = 0;
+      const errorDetails: string[] = [];
+
+      logger.info(`Starting CSV import with ${records.length} records`);
+
+      for (const [index, record] of records.entries()) {
+        try {
+          // Validate required fields
+          if (!record.monumentNameEn || !record.monumentNameAr) {
+            throw new Error('Monument name (English and Arabic) is required');
+          }
+
+          // Convert string IDs to numbers
+          const monumentData: CreateMonumentDto = {
+            monumentNameAr: record.monumentNameAr,
+            monumentNameEn: record.monumentNameEn,
+            monumentBiographyAr: record.monumentBiographyAr || '',
+            monumentBiographyEn: record.monumentBiographyEn || '',
+            lat: record.lat || '0',
+            lng: record.lng || '0',
+            image: record.image || '',
+            mDate: record.mDate || new Date().toLocaleDateString(),
+            monumentsTypeId: parseInt(record.monumentsTypeId, 10),
+            eraId: parseInt(record.eraId, 10),
+            dynastyId: parseInt(record.dynastyId, 10),
+            zoom: record.zoom || '10',
+            center: record.center || `${record.lat || '0'},${record.lng || '0'}`,
+          };
+
+          // Add descriptions if provided
+          if (record.descriptionEn || record.descriptionAr) {
+            monumentData.descriptions = [
+              {
+                descriptionEn: record.descriptionEn || '',
+                descriptionAr: record.descriptionAr || '',
+                eraId: monumentData.eraId,
+                monumentsTypeId: monumentData.monumentsTypeId,
+                dynastyId: monumentData.dynastyId,
+              },
+            ];
+          }
+
+          // Create monument
+          await this.create(monumentData);
+          created++;
+          logger.info(`Successfully imported monument ${index + 1}: ${monumentData.monumentNameEn}`);
+        } catch (error: any) {
+          errors++;
+          const errorMsg = `Row ${index + 2}: ${error?.message || 'Unknown error'}`;
+          errorDetails.push(errorMsg);
+          logger.error(`Error importing monument at row ${index + 2}`, { error: error?.message || 'Unknown error' });
+        }
+      }
+
+      return {
+        created,
+        errors,
+        total: records.length,
+        errorDetails,
+      };
+    } catch (error: any) {
+      logger.error('Failed to parse CSV file', { error });
+      throw new BadRequestException(`Failed to parse CSV file: ${error?.message || 'Unknown error'}`);
+    }
   }
 }

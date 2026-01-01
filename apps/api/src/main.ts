@@ -1,6 +1,8 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { config } from './config';
@@ -8,12 +10,34 @@ import { logger } from './logger';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: ['error', 'warn', 'log'],
   });
 
-  // Security middleware
-  app.use(helmet());
+  // Serve static files (uploaded images)
+  // In production (Docker): __dirname = /app/dist, so we need /app/uploads
+  // In development: adjust path accordingly
+  const uploadsPath = process.env.NODE_ENV === 'production'
+    ? '/app/uploads'
+    : join(__dirname, '..', '..', 'uploads');
+
+  app.useStaticAssets(uploadsPath, {
+    prefix: '/uploads/',
+  });
+
+  // Security middleware - Configure helmet to allow SVG files
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+        },
+      },
+    })
+  );
 
   // CORS configuration
   app.enableCors({
@@ -65,6 +89,7 @@ async function bootstrap() {
     .addTag('Portal Settings', 'User settings and preferences')
     .addTag('Contact', 'Contact form submissions')
     .addTag('Newsletter', 'Newsletter subscription management')
+    .addTag('Upload', 'File upload endpoints')
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);

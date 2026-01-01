@@ -1,5 +1,6 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { MonumentsService } from './monuments.service';
 import { CreateMonumentDto } from './dto/create-monument.dto';
 import { UpdateMonumentDto } from './dto/update-monument.dto';
@@ -56,6 +57,43 @@ export class MonumentsController {
     return {
       data: monument,
       message: 'Monument created successfully',
+    };
+  }
+
+  /**
+   * POST /api/v1/monuments/import-csv
+   * Import monuments from CSV file
+   */
+  @Post('import-csv')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({ summary: 'Import monuments from CSV file' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 201, description: 'Monuments imported successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request - invalid CSV format' })
+  async importCsv(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+
+    if (!file.originalname.endsWith('.csv')) {
+      throw new BadRequestException('Only CSV files are allowed');
+    }
+
+    const result = await this.monumentsService.importFromCsv(file);
+    return {
+      data: result,
+      message: `Successfully imported ${result.created} monument(s). ${result.errors} error(s) encountered.`,
     };
   }
 

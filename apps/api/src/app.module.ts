@@ -22,6 +22,7 @@ import { MonumentTypesModule } from './modules/monument-types/monument-types.mod
 import { DescriptionMonumentsModule } from './modules/description-monuments/description-monuments.module';
 import { MonumentsEraModule } from './modules/monuments-era/monuments-era.module';
 import { GalleryModule } from './modules/gallery/gallery.module';
+import { UploadModule } from './modules/upload/upload.module';
 
 // Portal modules
 import { PortalAuthModule } from './modules/portal-auth/portal-auth.module';
@@ -72,6 +73,7 @@ import { EmailService } from './common/services/email.service';
     DescriptionMonumentsModule,
     MonumentsEraModule,
     GalleryModule,
+    UploadModule,
 
     // Portal modules
     PortalAuthModule,
