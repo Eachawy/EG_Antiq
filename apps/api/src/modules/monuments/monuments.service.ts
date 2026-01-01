@@ -19,6 +19,7 @@ export class MonumentsService {
         monumentType: true,
         era: true,
         dynasty: true,
+        monumentDescriptions: true,
       },
       orderBy: {
         id: 'desc',
