@@ -38,10 +38,14 @@ fi
 echo -e "${BLUE}Generating secure secrets...${NC}"
 
 # Generate secrets
+# JWT secrets can have any base64 characters (not used in URLs)
 JWT_SECRET=$(openssl rand -base64 64 | tr -d '\n')
 PORTAL_JWT_SECRET=$(openssl rand -base64 64 | tr -d '\n')
-DATABASE_PASSWORD=$(openssl rand -base64 32 | tr -d '\n')
-REDIS_PASSWORD=$(openssl rand -base64 32 | tr -d '\n')
+
+# Database passwords must be URL-safe (used in DATABASE_URL)
+# Generate alphanumeric passwords (no special chars that break URLs)
+DATABASE_PASSWORD=$(openssl rand -hex 32)
+REDIS_PASSWORD=$(openssl rand -hex 32)
 
 echo -e "${GREEN}✓ Secrets generated${NC}"
 echo ""
