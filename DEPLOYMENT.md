@@ -68,12 +68,14 @@ nano .env  # Set required variables
 #### Minimum Specifications
 
 **Staging:**
+
 - **CPU**: 2 vCPUs
 - **RAM**: 4GB
 - **Storage**: 50GB SSD
 - **OS**: Ubuntu 22.04 LTS or similar
 
 **Production:**
+
 - **CPU**: 4 vCPUs (recommended: 8)
 - **RAM**: 8GB (recommended: 16GB)
 - **Storage**: 100GB SSD (recommended: 200GB)
@@ -192,13 +194,13 @@ API Health: http://localhost/api/v1/health
 
 All scripts are located in the `scripts/` directory:
 
-| Script | Purpose | Usage |
-|--------|---------|-------|
-| `deploy.sh` | Complete deployment automation | `./scripts/deploy.sh` |
-| `setup-ssl.sh` | SSL certificate setup (Let's Encrypt) | `./scripts/setup-ssl.sh` |
-| `backup.sh` | Database backup (keeps last 7) | `./scripts/backup.sh` |
-| `restore.sh` | Database restoration | `./scripts/restore.sh` |
-| `logs.sh` | View service logs | `./scripts/logs.sh [service]` |
+| Script         | Purpose                               | Usage                         |
+| -------------- | ------------------------------------- | ----------------------------- |
+| `deploy.sh`    | Complete deployment automation        | `./scripts/deploy.sh`         |
+| `setup-ssl.sh` | SSL certificate setup (Let's Encrypt) | `./scripts/setup-ssl.sh`      |
+| `backup.sh`    | Database backup (keeps last 7)        | `./scripts/backup.sh`         |
+| `restore.sh`   | Database restoration                  | `./scripts/restore.sh`        |
+| `logs.sh`      | View service logs                     | `./scripts/logs.sh [service]` |
 
 ### Viewing Logs
 
@@ -231,11 +233,13 @@ The `setup-ssl.sh` script automates Let's Encrypt certificate setup:
 ```
 
 **Prerequisites:**
+
 - Domain name configured and pointed to server
 - `DOMAIN` and `ADMIN_EMAIL` set in .env file
 - Ports 80 and 443 open in firewall
 
 **What it does:**
+
 1. Validates domain and email configuration
 2. Obtains SSL certificate from Let's Encrypt
 3. Creates auto-renewal script (`scripts/renew-ssl.sh`)
@@ -243,6 +247,7 @@ The `setup-ssl.sh` script automates Let's Encrypt certificate setup:
 
 **Post-setup:**
 After running the script, follow the instructions to:
+
 1. Uncomment the HTTPS server block in `docker/nginx/nginx.conf`
 2. Restart Nginx: `docker compose -f docker-compose.production.yml restart nginx`
 3. Setup cron job for auto-renewal
@@ -256,12 +261,14 @@ The `backup.sh` script creates compressed database backups:
 ```
 
 **Features:**
+
 - Creates timestamped backup files
 - Compresses with gzip
 - Automatically keeps last 7 backups
 - Displays backup size and list
 
 **Output:**
+
 ```
 ========================================
   Database Backup
@@ -283,6 +290,7 @@ Available backups:
 
 **Automation:**
 Setup daily backups with cron:
+
 ```bash
 sudo crontab -e
 # Add: 0 2 * * * /path/to/EG_Antiq/scripts/backup.sh >> /var/log/db-backup.log 2>&1
@@ -297,6 +305,7 @@ The `restore.sh` script restores from backup:
 ```
 
 **Interactive Process:**
+
 1. Lists available backups with sizes
 2. Prompts for backup filename
 3. Confirms destructive operation
@@ -382,6 +391,7 @@ docker compose -f docker-compose.production.yml build --no-cache
 ```
 
 **Build Process:**
+
 - API: Multi-stage build with pnpm dependencies
 - Frontend: React build served by Nginx
 - All images optimized for production
@@ -472,6 +482,7 @@ docker compose -f docker-compose.production.yml restart nginx
 #### 4. Setup Auto-Renewal
 
 Add to crontab:
+
 ```bash
 sudo crontab -e
 # Add:
@@ -695,7 +706,15 @@ services:
       - staging-network
     restart: always
     healthcheck:
-      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:3000/api/v1/health']
+      test:
+        [
+          'CMD',
+          'wget',
+          '--no-verbose',
+          '--tries=1',
+          '--spider',
+          'http://localhost:3000/api/v1/health',
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -944,10 +963,10 @@ services:
       POSTGRES_DB: antiq_production
       PGPORT: 5433
     ports:
-      - '127.0.0.1:5433:5433'  # Only localhost access
+      - '127.0.0.1:5433:5433' # Only localhost access
     volumes:
       - postgres_production_data:/var/lib/postgresql/data
-      - ./backups:/backups  # Backup directory
+      - ./backups:/backups # Backup directory
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U postgres -p 5433']
       interval: 10s
@@ -968,7 +987,7 @@ services:
     image: redis:7-alpine
     container_name: production-redis
     ports:
-      - '127.0.0.1:6379:6379'  # Only localhost access
+      - '127.0.0.1:6379:6379' # Only localhost access
     volumes:
       - redis_production_data:/data
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
@@ -994,7 +1013,7 @@ services:
       DATABASE_URL: postgresql://postgres:${DATABASE_PASSWORD}@postgres:5433/antiq_production?schema=public
       LOG_LEVEL: info
     ports:
-      - '127.0.0.1:3000:3000'  # Only localhost access (behind Nginx)
+      - '127.0.0.1:3000:3000' # Only localhost access (behind Nginx)
     depends_on:
       postgres:
         condition: service_healthy
@@ -1011,7 +1030,15 @@ services:
         reservations:
           memory: 2G
     healthcheck:
-      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:3000/api/v1/health']
+      test:
+        [
+          'CMD',
+          'wget',
+          '--no-verbose',
+          '--tries=1',
+          '--spider',
+          'http://localhost:3000/api/v1/health',
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -1568,6 +1595,7 @@ curl https://api.yourdomain.com/api/v1/health
 ## Support
 
 For deployment issues, contact:
+
 - DevOps Team: devops@yourdomain.com
 - Emergency Hotline: +XX-XXX-XXX-XXXX
 
@@ -1579,14 +1607,14 @@ For deployment issues, contact:
 
 All services are configured in `docker-compose.production.yml`:
 
-| Service | Image | Ports | Resources | Volume |
-|---------|-------|-------|-----------|---------|
-| **postgres** | postgres:15-alpine | 5433 | 2 CPU, 4GB RAM | postgres_production_data |
-| **redis** | redis:7-alpine | 6379 | 1 CPU, 2GB RAM | redis_production_data |
-| **api** | Custom (NestJS) | 3000 | 2 CPU, 4GB RAM | uploads_data |
-| **frontend** | Custom (React+Nginx) | 80 | 1 CPU, 1GB RAM | - |
-| **nginx** | nginx:1.25-alpine | 80, 443 | 1 CPU, 512MB | uploads_data (read-only) |
-| **certbot** | certbot/certbot | - | - | certs, certbot-www |
+| Service      | Image                | Ports   | Resources      | Volume                   |
+| ------------ | -------------------- | ------- | -------------- | ------------------------ |
+| **postgres** | postgres:15-alpine   | 5433    | 2 CPU, 4GB RAM | postgres_production_data |
+| **redis**    | redis:7-alpine       | 6379    | 1 CPU, 2GB RAM | redis_production_data    |
+| **api**      | Custom (NestJS)      | 3000    | 2 CPU, 4GB RAM | uploads_data             |
+| **frontend** | Custom (React+Nginx) | 80      | 1 CPU, 1GB RAM | -                        |
+| **nginx**    | nginx:1.25-alpine    | 80, 443 | 1 CPU, 512MB   | uploads_data (read-only) |
+| **certbot**  | certbot/certbot      | -       | -              | certs, certbot-www       |
 
 ### Network Architecture
 
@@ -1606,16 +1634,19 @@ Nginx Reverse Proxy (Port 80/443)
 ### Volume Management
 
 **Persistent Data:**
+
 - `postgres_production_data` - Database files
 - `redis_production_data` - Redis persistence
 - `uploads_data` - User-uploaded files (gallery images)
 
 **Shared Volumes:**
+
 - `./backups` - Database backups (host mount)
 - `./certs` - SSL certificates (host mount)
 - `./certbot-www` - Let's Encrypt challenge files (host mount)
 
 **View volumes:**
+
 ```bash
 docker volume ls
 docker volume inspect eg_antiq_uploads_data
@@ -1658,9 +1689,7 @@ docker stats
 - **Environment**: `.env`
 - **Docker Compose**: `docker-compose.production.yml`
 - **Nginx Proxy Config**: `docker/nginx/nginx.conf`
-- **Frontend Nginx**: `docker/nginx/frontend.conf`
 - **API Dockerfile**: `docker/api.Dockerfile`
-- **Frontend Dockerfile**: `../EG_Antiq_backend/docker/frontend.Dockerfile`
 - **Deployment Scripts**: `scripts/*.sh`
 - **Backups**: `./backups/`
 - **SSL Certs**: `./certs/`
@@ -1677,13 +1706,13 @@ docker stats
 
 - **Nginx**: 80 (HTTP), 443 (HTTPS)
 - **API**: 3000 (internal)
-- **Frontend**: 80 (internal)
 - **PostgreSQL**: 5433 (non-standard to avoid conflicts)
 - **Redis**: 6379
 
 ### Default Credentials
 
 After initial deployment with seed data:
+
 - **Admin Email**: `admin@example.com`
 - **Admin Password**: `Admin123!`
 
@@ -1710,20 +1739,20 @@ deploy:
 
 ### Environment Variables Reference
 
-| Variable | Required | Example | Description |
-|----------|----------|---------|-------------|
-| `DATABASE_PASSWORD` | Yes | `SecurePass123!` | PostgreSQL password |
-| `JWT_SECRET` | Yes | `<64-char-secret>` | Admin JWT secret |
-| `PORTAL_JWT_SECRET` | Yes | `<64-char-secret>` | Portal JWT secret |
-| `DOMAIN` | SSL only | `yourdomain.com` | Domain name for SSL |
-| `ADMIN_EMAIL` | SSL only | `admin@domain.com` | Email for Let's Encrypt |
-| `REDIS_PASSWORD` | Optional | `RedisPass123!` | Redis password |
-| `GOOGLE_CLIENT_ID` | OAuth | `xxx.apps.googleusercontent.com` | Google OAuth |
-| `FACEBOOK_APP_ID` | OAuth | `123456789` | Facebook OAuth |
-| `APPLE_CLIENT_ID` | OAuth | `com.yourapp.service` | Apple Sign In |
-| `MAIL_HOST` | Email | `smtp.gmail.com` | SMTP server |
-| `MAIL_USER` | Email | `noreply@domain.com` | SMTP username |
-| `MAIL_PASSWORD` | Email | `app-password` | SMTP password |
+| Variable            | Required | Example                          | Description             |
+| ------------------- | -------- | -------------------------------- | ----------------------- |
+| `DATABASE_PASSWORD` | Yes      | `SecurePass123!`                 | PostgreSQL password     |
+| `JWT_SECRET`        | Yes      | `<64-char-secret>`               | Admin JWT secret        |
+| `PORTAL_JWT_SECRET` | Yes      | `<64-char-secret>`               | Portal JWT secret       |
+| `DOMAIN`            | SSL only | `yourdomain.com`                 | Domain name for SSL     |
+| `ADMIN_EMAIL`       | SSL only | `admin@domain.com`               | Email for Let's Encrypt |
+| `REDIS_PASSWORD`    | Optional | `RedisPass123!`                  | Redis password          |
+| `GOOGLE_CLIENT_ID`  | OAuth    | `xxx.apps.googleusercontent.com` | Google OAuth            |
+| `FACEBOOK_APP_ID`   | OAuth    | `123456789`                      | Facebook OAuth          |
+| `APPLE_CLIENT_ID`   | OAuth    | `com.yourapp.service`            | Apple Sign In           |
+| `MAIL_HOST`         | Email    | `smtp.gmail.com`                 | SMTP server             |
+| `MAIL_USER`         | Email    | `noreply@domain.com`             | SMTP username           |
+| `MAIL_PASSWORD`     | Email    | `app-password`                   | SMTP password           |
 
 ---
 
@@ -1796,6 +1825,7 @@ docker compose -f docker-compose.production.yml exec api ping postgres
 ### Common Issues
 
 **Issue**: Database connection failed
+
 ```bash
 # Solution 1: Restart database
 docker compose -f docker-compose.production.yml restart postgres
@@ -1805,6 +1835,7 @@ docker compose -f docker-compose.production.yml exec api env | grep DATABASE_URL
 ```
 
 **Issue**: Uploaded images return 404
+
 ```bash
 # Solution: Verify volume mount
 docker volume inspect eg_antiq_uploads_data
@@ -1812,6 +1843,7 @@ docker compose -f docker-compose.production.yml restart nginx
 ```
 
 **Issue**: High memory usage
+
 ```bash
 # Solution: Check stats and restart
 docker stats --no-stream
@@ -1819,6 +1851,7 @@ docker compose -f docker-compose.production.yml restart
 ```
 
 **Issue**: SSL certificate expired
+
 ```bash
 # Solution: Renew certificate
 ./scripts/renew-ssl.sh
@@ -1828,6 +1861,7 @@ docker compose -f docker-compose.production.yml restart nginx
 ### Emergency Procedures
 
 **Complete system restart:**
+
 ```bash
 docker compose -f docker-compose.production.yml down
 docker system prune -f
@@ -1835,6 +1869,7 @@ docker compose -f docker-compose.production.yml up -d
 ```
 
 **Database recovery:**
+
 ```bash
 # Stop API
 docker compose -f docker-compose.production.yml stop api
@@ -1889,8 +1924,8 @@ Monitor and adjust in `docker-compose.production.yml`:
 deploy:
   resources:
     limits:
-      cpus: '4'  # Increase for better performance
-      memory: 8G  # Increase if needed
+      cpus: '4' # Increase for better performance
+      memory: 8G # Increase if needed
 ```
 
 ---

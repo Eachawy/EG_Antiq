@@ -65,8 +65,8 @@ echo -e "${GREEN}✓ Migrations complete${NC}"
 echo ""
 
 # Start remaining services
-echo -e "${YELLOW}Step 6: Starting API and Frontend...${NC}"
-docker compose -f docker-compose.production.yml up -d api frontend nginx
+echo -e "${YELLOW}Step 6: Starting API and Nginx...${NC}"
+docker compose -f docker-compose.production.yml up -d api nginx
 echo -e "${GREEN}✓ All services started${NC}"
 echo ""
 

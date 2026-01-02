@@ -14,7 +14,7 @@ services:
       POSTGRES_WORK_MEM: 16MB
       POSTGRES_MAINTENANCE_WORK_MEM: 128MB
     ports:
-      - '127.0.0.1:5433:5433'  # Only localhost access
+      - '127.0.0.1:5433:5433' # Only localhost access
     volumes:
       - postgres_production_data:/var/lib/postgresql/data
       - ./backups:/backups
@@ -41,7 +41,7 @@ services:
     container_name: production-redis
     command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
     ports:
-      - '127.0.0.1:6379:6379'  # Only localhost access
+      - '127.0.0.1:6379:6379' # Only localhost access
     volumes:
       - redis_production_data:/data
     healthcheck:
@@ -92,47 +92,22 @@ services:
           cpus: '2'
           memory: 2G
     healthcheck:
-      test: ['CMD', 'node', '-e', "require('http').get('http://localhost:3000/api/v1/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "require('http').get('http://localhost:3000/api/v1/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
     logging:
-      driver: "json-file"
+      driver: 'json-file'
       options:
-        max-size: "10m"
-        max-file: "3"
-
-  # Frontend Application
-  frontend:
-    build:
-      context: ../EG_Antiq_backend
-      dockerfile: docker/frontend.Dockerfile
-      target: production
-    container_name: production-frontend
-    ports:
-      - '3001:80'
-    restart: always
-    networks:
-      - production-network
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 512M
-        reservations:
-          memory: 256M
-    healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost/health']
-      interval: 30s
-      timeout: 3s
-      retries: 3
-      start_period: 10s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "5m"
-        max-file: "3"
+        max-size: '10m'
+        max-file: '3'
 
   # Nginx Reverse Proxy
   nginx:
@@ -148,7 +123,6 @@ services:
       - ./certbot-www:/var/www/certbot:ro
     depends_on:
       - api
-      - frontend
     networks:
       - production-network
     restart: always
@@ -165,10 +139,10 @@ services:
       timeout: 3s
       retries: 3
     logging:
-      driver: "json-file"
+      driver: 'json-file'
       options:
-        max-size: "10m"
-        max-file: "3"
+        max-size: '10m'
+        max-file: '3'
 
   # Certbot for SSL (Let's Encrypt)
   certbot:
