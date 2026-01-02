@@ -23,6 +23,10 @@ import { DescriptionMonumentsModule } from './modules/description-monuments/desc
 import { MonumentsEraModule } from './modules/monuments-era/monuments-era.module';
 import { GalleryModule } from './modules/gallery/gallery.module';
 import { UploadModule } from './modules/upload/upload.module';
+import { SourcesModule } from './modules/sources/sources.module';
+import { BooksModule } from './modules/books/books.module';
+import { MonumentSourcesModule } from './modules/monument-sources/monument-sources.module';
+import { MonumentBooksModule } from './modules/monument-books/monument-books.module';
 
 // Portal modules
 import { PortalAuthModule } from './modules/portal-auth/portal-auth.module';
@@ -74,6 +78,10 @@ import { EmailService } from './common/services/email.service';
     MonumentsEraModule,
     GalleryModule,
     UploadModule,
+    SourcesModule,
+    BooksModule,
+    MonumentSourcesModule,
+    MonumentBooksModule,
 
     // Portal modules
     PortalAuthModule,

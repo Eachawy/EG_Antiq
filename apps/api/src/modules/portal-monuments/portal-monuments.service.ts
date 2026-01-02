@@ -180,6 +180,18 @@ export class PortalMonumentsService {
             era: true,
           },
         },
+        monumentSources: {
+          include: {
+            source: true,
+          },
+          orderBy: { displayOrder: 'asc' },
+        },
+        monumentBooks: {
+          include: {
+            book: true,
+          },
+          orderBy: { displayOrder: 'asc' },
+        },
       },
     });
 

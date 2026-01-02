@@ -363,6 +363,8 @@ model Monument {
   galleries             Gallery[]
   monumentDescriptions  DescriptionMonument[]
   monumentsEra          MonumentEra[]
+  monumentSources       MonumentSource[]
+  monumentBooks         MonumentBook[]
   favorites             Favorite[]
   browsingHistory       BrowsingHistory[]
 
@@ -421,6 +423,105 @@ model DescriptionMonument {
 
   @@index([monumentId])
   @@map("description_monuments")
+}
+
+// ============================================
+// SOURCES AND BOOKS DOMAIN
+// ============================================
+
+enum SourceType {
+  JOURNAL
+  BOOK
+  WEBSITE
+  REPORT
+  THESIS
+  CONFERENCE
+  ENCYCLOPEDIA
+}
+
+model Source {
+  id                Int       @id @default(autoincrement())
+  titleAr           String    @map("title_ar") @db.VarChar(500)
+  titleEn           String    @map("title_en") @db.VarChar(500)
+  authorAr          String?   @map("author_ar") @db.VarChar(255)
+  authorEn          String?   @map("author_en") @db.VarChar(255)
+  publicationYear   Int?      @map("publication_year")
+  publisher         String?   @db.VarChar(255)
+  sourceType        SourceType? @map("source_type")
+  url               String?   @db.VarChar(1000)
+  pages             String?   @db.VarChar(100)
+  volume            String?   @db.VarChar(50)
+  issue             String?   @db.VarChar(50)
+  isbn              String?   @db.VarChar(50)
+  doi               String?   @db.VarChar(255)
+  notes             String?   @db.Text
+  createdAt         DateTime? @default(now()) @map("created_at") @db.Timestamp
+
+  // Relations
+  monumentSources   MonumentSource[]
+
+  @@map("sources")
+}
+
+model Book {
+  id                Int       @id @default(autoincrement())
+  titleAr           String    @map("title_ar") @db.VarChar(500)
+  titleEn           String    @map("title_en") @db.VarChar(500)
+  authorAr          String    @map("author_ar") @db.VarChar(255)
+  authorEn          String    @map("author_en") @db.VarChar(255)
+  coverImage        String?   @map("cover_image") @db.VarChar(500)
+  publicationYear   Int?      @map("publication_year")
+  publisher         String?   @db.VarChar(255)
+  isbn              String?   @db.VarChar(50)
+  pages             Int?
+  description       String?   @db.Text
+  readUrl           String?   @map("read_url") @db.VarChar(1000)
+  purchaseUrl       String?   @map("purchase_url") @db.VarChar(1000)
+  language          String?   @db.VarChar(10)
+  edition           String?   @db.VarChar(50)
+  createdAt         DateTime? @default(now()) @map("created_at") @db.Timestamp
+
+  // Relations
+  monumentBooks     MonumentBook[]
+
+  @@map("books")
+}
+
+model MonumentSource {
+  id          Int       @id @default(autoincrement())
+  monumentId  Int       @map("monument_id")
+  sourceId    Int       @map("source_id")
+  pageNumbers String?   @map("page_numbers") @db.VarChar(100)
+  notes       String?   @db.Text
+  displayOrder Int?     @map("display_order")
+  createdAt   DateTime? @default(now()) @map("created_at") @db.Timestamp
+
+  // Relations
+  monument    Monument  @relation(fields: [monumentId], references: [id], onDelete: Cascade)
+  source      Source    @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@unique([monumentId, sourceId])
+  @@index([monumentId])
+  @@index([sourceId])
+  @@map("monument_sources")
+}
+
+model MonumentBook {
+  id           Int       @id @default(autoincrement())
+  monumentId   Int       @map("monument_id")
+  bookId       Int       @map("book_id")
+  relevance    String?   @db.VarChar(255)
+  displayOrder Int?      @map("display_order")
+  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamp
+
+  // Relations
+  monument     Monument  @relation(fields: [monumentId], references: [id], onDelete: Cascade)
+  book         Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@unique([monumentId, bookId])
+  @@index([monumentId])
+  @@index([bookId])
+  @@map("monument_books")
 }
 
 // ============================================
