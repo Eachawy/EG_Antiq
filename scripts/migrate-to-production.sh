@@ -30,16 +30,30 @@ PRODUCTION_USER="root"
 BACKUP_FILE="production_backup_$(date +%Y%m%d_%H%M%S).sql"
 
 echo -e "${BLUE}Step 1: Dumping local database...${NC}"
-PGPASSWORD=$LOCAL_DB_PASSWORD pg_dump \
-  -h $LOCAL_DB_HOST \
-  -p $LOCAL_DB_PORT \
-  -U $LOCAL_DB_USER \
-  -d $LOCAL_DB_NAME \
-  --clean \
-  --if-exists \
-  --no-owner \
-  --no-privileges \
-  > /tmp/$BACKUP_FILE
+# Use Docker to run pg_dump if local pg_dump not available
+if command -v pg_dump &> /dev/null; then
+  PGPASSWORD=$LOCAL_DB_PASSWORD pg_dump \
+    -h $LOCAL_DB_HOST \
+    -p $LOCAL_DB_PORT \
+    -U $LOCAL_DB_USER \
+    -d $LOCAL_DB_NAME \
+    --clean \
+    --if-exists \
+    --no-owner \
+    --no-privileges \
+    > /tmp/$BACKUP_FILE
+else
+  # Use Docker container to dump
+  echo -e "${YELLOW}  Using Docker to dump database...${NC}"
+  docker exec backend-postgres pg_dump \
+    -U $LOCAL_DB_USER \
+    -d $LOCAL_DB_NAME \
+    --clean \
+    --if-exists \
+    --no-owner \
+    --no-privileges \
+    > /tmp/$BACKUP_FILE
+fi
 
 echo -e "${GREEN}✓ Local database dumped to /tmp/$BACKUP_FILE${NC}"
 FILE_SIZE=$(du -h /tmp/$BACKUP_FILE | cut -f1)
