@@ -61,13 +61,13 @@ echo -e "${BLUE}  File size: $FILE_SIZE${NC}"
 echo ""
 
 echo -e "${BLUE}Step 2: Transferring backup to production server...${NC}"
-scp /tmp/$BACKUP_FILE $PRODUCTION_USER@$PRODUCTION_SERVER:/tmp/$BACKUP_FILE
+scp -o PreferredAuthentications=password /tmp/$BACKUP_FILE $PRODUCTION_USER@$PRODUCTION_SERVER:/tmp/$BACKUP_FILE
 
 echo -e "${GREEN}✓ Backup transferred to production server${NC}"
 echo ""
 
 echo -e "${BLUE}Step 3: Restoring database on production server...${NC}"
-ssh $PRODUCTION_USER@$PRODUCTION_SERVER << ENDSSH
+ssh -o PreferredAuthentications=password $PRODUCTION_USER@$PRODUCTION_SERVER << ENDSSH
 cd /root/EG_Antiq
 
 echo "Stopping API container..."
