@@ -73,6 +73,8 @@ services:
       NODE_ENV: production
       DATABASE_URL: postgresql://postgres:${DATABASE_PASSWORD}@postgres:5433/antiq_production?schema=public
       LOG_LEVEL: info
+    ports:
+      - '3000:3000'
     volumes:
       - uploads_data:/app/uploads
     depends_on:
