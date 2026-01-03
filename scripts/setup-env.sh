@@ -50,6 +50,11 @@ REDIS_PASSWORD=$(openssl rand -hex 32)
 echo -e "${GREEN}✓ Secrets generated${NC}"
 echo ""
 
+# Detect server IP
+SERVER_IP=$(curl -s ifconfig.me 2>/dev/null || echo "localhost")
+echo -e "${BLUE}Detected Server IP: ${GREEN}${SERVER_IP}${NC}"
+echo ""
+
 # Get domain information
 echo -e "${YELLOW}Optional: Domain Configuration (for SSL)${NC}"
 read -p "Enter your domain name (or press Enter to skip): " DOMAIN
@@ -95,8 +100,8 @@ API_PREFIX=api/v1
 # Logging
 LOG_LEVEL=info
 
-# CORS Configuration
-CORS_ORIGIN=http://localhost,https://yourdomain.com
+# CORS Configuration (allows admin frontend to connect)
+CORS_ORIGINS=http://localhost:3001,http://${SERVER_IP}:3001,http://localhost:3002,http://${SERVER_IP}:3002
 EOF
 
 # Add domain configuration if provided
@@ -107,6 +112,9 @@ if [ -n "$DOMAIN" ]; then
 DOMAIN=${DOMAIN}
 ADMIN_EMAIL=${ADMIN_EMAIL}
 EOF
+
+    # Add domain to CORS if provided
+    sed -i "s|CORS_ORIGINS=.*|CORS_ORIGINS=http://localhost:3001,http://${SERVER_IP}:3001,http://localhost:3002,http://${SERVER_IP}:3002,https://${DOMAIN}|" .env
 fi
 
 # Add optional configurations
@@ -152,14 +160,17 @@ echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}  Configuration Summary${NC}"
 echo -e "${GREEN}========================================${NC}"
 echo ""
+echo -e "Server IP: ${GREEN}${SERVER_IP}${NC}"
 echo -e "Database Password: ${YELLOW}[HIDDEN - stored in .env]${NC}"
 echo -e "JWT Secret: ${YELLOW}[HIDDEN - stored in .env]${NC}"
 echo -e "Portal JWT Secret: ${YELLOW}[HIDDEN - stored in .env]${NC}"
 echo -e "Redis Password: ${YELLOW}[HIDDEN - stored in .env]${NC}"
+echo -e "CORS Origins: ${GREEN}http://localhost:3001, http://${SERVER_IP}:3001${NC},${GREEN}http://localhost:3002, http://${SERVER_IP}:3002${NC}"
 
 if [ -n "$DOMAIN" ]; then
     echo -e "Domain: ${GREEN}${DOMAIN}${NC}"
     echo -e "Admin Email: ${GREEN}${ADMIN_EMAIL}${NC}"
+    echo -e "CORS also includes: ${GREEN}https://${DOMAIN}${NC}"
 fi
 
 echo ""
