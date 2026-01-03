@@ -101,7 +101,7 @@ API_PREFIX=api/v1
 LOG_LEVEL=info
 
 # CORS Configuration (allows admin frontend to connect)
-CORS_ORIGINS=http://localhost:3001,http://${SERVER_IP}:3001,http://localhost:3002,http://${SERVER_IP}:3002
+CORS_ORIGINS=http://admin.kemetra.org,https://admin.kemetra.org,http://api.kemetra.org,https://api.kemetra.org,http://localhost:3001,http://${SERVER_IP}:3001,http://localhost:3002,http://${SERVER_IP}:3002
 EOF
 
 # Add domain configuration if provided
@@ -113,8 +113,8 @@ DOMAIN=${DOMAIN}
 ADMIN_EMAIL=${ADMIN_EMAIL}
 EOF
 
-    # Add domain to CORS if provided
-    sed -i "s|CORS_ORIGINS=.*|CORS_ORIGINS=http://localhost:3001,http://${SERVER_IP}:3001,http://localhost:3002,http://${SERVER_IP}:3002,https://${DOMAIN}|" .env
+    # Add domain to CORS if provided (using admin subdomain)
+    sed -i "s|CORS_ORIGINS=.*|CORS_ORIGINS=http://admin.${DOMAIN},https://admin.${DOMAIN},http://api.${DOMAIN},https://api.${DOMAIN},http://localhost:3001,http://${SERVER_IP}:3001,http://localhost:3002,http://${SERVER_IP}:3002|" .env
 fi
 
 # Add optional configurations
@@ -165,12 +165,16 @@ echo -e "Database Password: ${YELLOW}[HIDDEN - stored in .env]${NC}"
 echo -e "JWT Secret: ${YELLOW}[HIDDEN - stored in .env]${NC}"
 echo -e "Portal JWT Secret: ${YELLOW}[HIDDEN - stored in .env]${NC}"
 echo -e "Redis Password: ${YELLOW}[HIDDEN - stored in .env]${NC}"
-echo -e "CORS Origins: ${GREEN}http://localhost:3001, http://${SERVER_IP}:3001${NC},${GREEN}http://localhost:3002, http://${SERVER_IP}:3002${NC}"
+echo -e "CORS Origins: ${GREEN}http://admin.kemetra.org, https://admin.kemetra.org${NC}"
+echo -e "              ${GREEN}http://api.kemetra.org, https://api.kemetra.org${NC}"
+echo -e "              ${GREEN}http://localhost:3001, http://${SERVER_IP}:3001${NC}"
+echo -e "              ${GREEN}http://localhost:3002, http://${SERVER_IP}:3002${NC}"
 
 if [ -n "$DOMAIN" ]; then
     echo -e "Domain: ${GREEN}${DOMAIN}${NC}"
     echo -e "Admin Email: ${GREEN}${ADMIN_EMAIL}${NC}"
-    echo -e "CORS also includes: ${GREEN}https://${DOMAIN}${NC}"
+    echo -e "Admin URL: ${GREEN}https://admin.${DOMAIN}${NC}"
+    echo -e "API URL: ${GREEN}https://api.${DOMAIN}${NC}"
 fi
 
 echo ""
