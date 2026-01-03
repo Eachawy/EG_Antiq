@@ -3,7 +3,7 @@ import { resolve } from 'path';
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 
-// Load environment variables from root .env file
+// Load environment variables from root .env  file
 config({ path: resolve(__dirname, '../../../.env') });
 
 const prisma = new PrismaClient();
@@ -44,8 +44,16 @@ async function main() {
     { resource: 'portal-users', action: 'update', description: 'Update portal user data' },
     { resource: 'portal-users', action: 'delete', description: 'Delete portal user data' },
     { resource: 'portal-favorites', action: 'manage', description: 'Manage portal user favorites' },
-    { resource: 'portal-history', action: 'manage', description: 'Manage portal user browsing history' },
-    { resource: 'portal-searches', action: 'manage', description: 'Manage portal user saved searches' },
+    {
+      resource: 'portal-history',
+      action: 'manage',
+      description: 'Manage portal user browsing history',
+    },
+    {
+      resource: 'portal-searches',
+      action: 'manage',
+      description: 'Manage portal user saved searches',
+    },
     { resource: 'portal-settings', action: 'manage', description: 'Manage portal user settings' },
   ];
 
