@@ -14,9 +14,7 @@ export class DescriptionMonumentsService {
   async findAll() {
     return this.prisma.descriptionMonument.findMany({
       include: {
-        era: true,
-        monumentType: true,
-        dynasty: true,
+        monument: true,
       },
       orderBy: {
         id: 'desc',
@@ -31,9 +29,7 @@ export class DescriptionMonumentsService {
     const descriptionMonument = await this.prisma.descriptionMonument.findUnique({
       where: { id },
       include: {
-        era: true,
-        monumentType: true,
-        dynasty: true,
+        monument: true,
       },
     });
 
@@ -51,9 +47,7 @@ export class DescriptionMonumentsService {
     return this.prisma.descriptionMonument.create({
       data: createDescriptionMonumentDto,
       include: {
-        era: true,
-        monumentType: true,
-        dynasty: true,
+        monument: true,
       },
     });
   }
@@ -68,9 +62,7 @@ export class DescriptionMonumentsService {
       where: { id },
       data: updateDescriptionMonumentDto,
       include: {
-        era: true,
-        monumentType: true,
-        dynasty: true,
+        monument: true,
       },
     });
   }

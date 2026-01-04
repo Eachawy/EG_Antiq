@@ -35,15 +35,15 @@ export class CreateMonumentDto {
   @IsNotEmpty()
   lng: string;
 
-  @ApiProperty({ description: 'Main monument image path', example: 'uploads/monuments/karnak-temple.jpg' })
+  @ApiPropertyOptional({ description: 'Main monument image path', example: 'uploads/monuments/karnak-temple.jpg' })
   @IsString()
-  @IsNotEmpty()
-  image: string;
+  @IsOptional()
+  image?: string;
 
-  @ApiProperty({ description: 'Monument date', example: '23/09/2025' })
+  @ApiPropertyOptional({ description: 'Monument date', example: '23/09/2025' })
   @IsString()
-  @IsNotEmpty()
-  mDate: string;
+  @IsOptional()
+  mDate?: string;
 
   @ApiProperty({ description: 'Monument type ID', example: 1 })
   @IsInt()

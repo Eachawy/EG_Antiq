@@ -55,16 +55,23 @@ export class MonumentsService {
   async create(createMonumentDto: CreateMonumentDto) {
     const { galleries, descriptions, ...monumentData } = createMonumentDto;
 
+    // Provide default values for optional fields
+    const monumentDataWithDefaults = {
+      ...monumentData,
+      image: monumentData.image || '',
+      mDate: monumentData.mDate || new Date().toISOString().split('T')[0], // Use current date as default
+    };
+
     return this.prisma.monument.create({
       data: {
-        ...monumentData,
+        ...monumentDataWithDefaults,
         galleries: galleries?.length
           ? {
               create: galleries.map((gallery) => ({
                 galleryPath: gallery.galleryPath,
-                dynastyId: gallery.dynastyId ?? monumentData.dynastyId,
-                eraId: gallery.eraId ?? monumentData.eraId,
-                monumentsTypeId: gallery.monumentsTypeId ?? monumentData.monumentsTypeId,
+                dynastyId: gallery.dynastyId ?? monumentDataWithDefaults.dynastyId,
+                eraId: gallery.eraId ?? monumentDataWithDefaults.eraId,
+                monumentsTypeId: gallery.monumentsTypeId ?? monumentDataWithDefaults.monumentsTypeId,
               })),
             }
           : undefined,
@@ -73,9 +80,9 @@ export class MonumentsService {
               create: descriptions.map((desc) => ({
                 descriptionAr: desc.descriptionAr,
                 descriptionEn: desc.descriptionEn,
-                eraId: desc.eraId ?? monumentData.eraId,
-                monumentsTypeId: desc.monumentsTypeId ?? monumentData.monumentsTypeId,
-                dynastyId: desc.dynastyId ?? monumentData.dynastyId,
+                eraId: desc.eraId ?? monumentDataWithDefaults.eraId,
+                monumentsTypeId: desc.monumentsTypeId ?? monumentDataWithDefaults.monumentsTypeId,
+                dynastyId: desc.dynastyId ?? monumentDataWithDefaults.dynastyId,
               })),
             }
           : undefined,

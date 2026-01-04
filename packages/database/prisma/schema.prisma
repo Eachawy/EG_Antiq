@@ -409,17 +409,17 @@ model DescriptionMonument {
   id               Int       @id @default(autoincrement())
   descriptionAr    String    @map("description_ar") @db.VarChar
   descriptionEn    String    @map("description_en") @db.VarChar
-  monumentId       Int?      @map("monument_id")
-  eraId            Int       @map("era_id")
-  monumentsTypeId  Int       @map("monuments_type_id")
-  dynastyId        Int       @map("dynasty_id")
+  monumentId       Int       @map("monument_id")
+  eraId            Int?      @map("era_id")
+  monumentsTypeId  Int?      @map("monuments_type_id")
+  dynastyId        Int?      @map("dynasty_id")
   createdAt        DateTime? @default(now()) @map("created_at") @db.Timestamp
 
   // Relations
-  monument     Monument?    @relation(fields: [monumentId], references: [id], onDelete: Cascade)
-  era          Era          @relation(fields: [eraId], references: [id])
-  monumentType MonumentType @relation(fields: [monumentsTypeId], references: [id])
-  dynasty      Dynasty      @relation(fields: [dynastyId], references: [id])
+  monument     Monument     @relation(fields: [monumentId], references: [id], onDelete: Cascade)
+  era          Era?         @relation(fields: [eraId], references: [id])
+  monumentType MonumentType? @relation(fields: [monumentsTypeId], references: [id])
+  dynasty      Dynasty?     @relation(fields: [dynastyId], references: [id])
 
   @@index([monumentId])
   @@map("description_monuments")
