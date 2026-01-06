@@ -1,0 +1,3 @@
+monumentNameAr,monumentNameEn,monumentBiographyAr,monumentBiographyEn,lat,lng,image,mDate,mDateHijri,monumentsTypeId,eraId,dynastyId,zoom,center,descriptionEn,descriptionAr
+معبد الكرنك,Karnak Temple,معبد الكرنك هو مجمع معابد ضخم يقع في الأقصر,The Karnak Temple Complex comprises a vast mix of decayed temples,25.718833,32.657444,uploads/monuments/karnak.jpg,2560 BC,15/03/1446,1,1,1,11,25.718833;32.657444,Ancient temple complex in Luxor,مجمع معابد قديم في الأقصر
+الأهرامات,Great Pyramids,الأهرامات الثلاثة الكبرى في الجيزة,The three great pyramids of Giza,29.9792,31.1342,uploads/monuments/pyramids.jpg,2580 BC,20/05/1447,2,2,2,12,29.9792;31.1342,Ancient Egyptian pyramids,الأهرامات المصرية القديمة

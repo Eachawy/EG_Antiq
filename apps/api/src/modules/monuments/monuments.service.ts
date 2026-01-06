@@ -227,7 +227,7 @@ export class MonumentsService {
 
   /**
    * Import monuments from CSV file
-   * CSV columns: monumentNameAr,monumentNameEn,monumentBiographyAr,monumentBiographyEn,lat,lng,image,mDate,monumentsTypeId,eraId,dynastyId,zoom,center,descriptionEn,descriptionAr
+   * CSV columns: monumentNameAr,monumentNameEn,monumentBiographyAr,monumentBiographyEn,lat,lng,image,mDate,mDateHijri,monumentsTypeId,eraId,dynastyId,zoom,center,descriptionEn,descriptionAr
    */
   async importFromCsv(file: Express.Multer.File) {
     try {
@@ -263,6 +263,7 @@ export class MonumentsService {
             lng: record.lng || '0',
             image: record.image || '',
             mDate: record.mDate || new Date().toLocaleDateString(),
+            mDateHijri: record.mDateHijri || new Date().toLocaleDateString(),
             monumentsTypeId: parseInt(record.monumentsTypeId, 10),
             eraId: parseInt(record.eraId, 10),
             dynastyId: parseInt(record.dynastyId, 10),

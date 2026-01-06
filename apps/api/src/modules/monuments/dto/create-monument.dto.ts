@@ -45,6 +45,11 @@ export class CreateMonumentDto {
   @IsOptional()
   mDate?: string;
 
+  @ApiPropertyOptional({ description: 'Monument date in Hijri calendar', example: '15/03/1446' })
+  @IsString()
+  @IsOptional()
+  mDateHijri?: string;
+
   @ApiProperty({ description: 'Monument type ID', example: 1 })
   @IsInt()
   monumentsTypeId: number;
