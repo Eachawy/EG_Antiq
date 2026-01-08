@@ -59,7 +59,7 @@ export class MonumentsService {
     const monumentDataWithDefaults = {
       ...monumentData,
       image: monumentData.image || '',
-      mDate: monumentData.mDate || new Date().toISOString().split('T')[0], // Use current date as default
+      startDate: monumentData.startDate || new Date().toISOString().split('T')[0], // Use current date as default
     };
 
     return this.prisma.monument.create({
@@ -227,7 +227,7 @@ export class MonumentsService {
 
   /**
    * Import monuments from CSV file
-   * CSV columns: monumentNameAr,monumentNameEn,monumentBiographyAr,monumentBiographyEn,lat,lng,image,mDate,mDateHijri,monumentsTypeId,eraId,dynastyId,zoom,center,descriptionEn,descriptionAr
+   * CSV columns: monumentNameAr,monumentNameEn,monumentBiographyAr,monumentBiographyEn,lat,lng,image,startDate,endDate,startDateHijri,endDateHijri,monumentsTypeId,eraId,dynastyId,zoom,center,descriptionEn,descriptionAr
    */
   async importFromCsv(file: Express.Multer.File) {
     try {
@@ -253,6 +253,22 @@ export class MonumentsService {
             throw new Error('Monument name (English and Arabic) is required');
           }
 
+          // Parse and validate IDs
+          const monumentsTypeId = parseInt(record.monumentsTypeId, 10);
+          const eraId = parseInt(record.eraId, 10);
+          const dynastyId = parseInt(record.dynastyId, 10);
+
+          // Validate that IDs are valid numbers
+          if (isNaN(monumentsTypeId)) {
+            throw new Error(`Invalid monumentsTypeId: "${record.monumentsTypeId}" - must be a number`);
+          }
+          if (isNaN(eraId)) {
+            throw new Error(`Invalid eraId: "${record.eraId}" - must be a number`);
+          }
+          if (isNaN(dynastyId)) {
+            throw new Error(`Invalid dynastyId: "${record.dynastyId}" - must be a number`);
+          }
+
           // Convert string IDs to numbers
           const monumentData: CreateMonumentDto = {
             monumentNameAr: record.monumentNameAr,
@@ -262,14 +278,26 @@ export class MonumentsService {
             lat: record.lat || '0',
             lng: record.lng || '0',
             image: record.image || '',
-            mDate: record.mDate || new Date().toLocaleDateString(),
-            mDateHijri: record.mDateHijri || new Date().toLocaleDateString(),
-            monumentsTypeId: parseInt(record.monumentsTypeId, 10),
-            eraId: parseInt(record.eraId, 10),
-            dynastyId: parseInt(record.dynastyId, 10),
+            startDate: record.startDate || new Date().toLocaleDateString(),
+            monumentsTypeId: monumentsTypeId,
+            eraId: eraId,
+            dynastyId: dynastyId,
             zoom: record.zoom || '10',
             center: record.center || `${record.lat || '0'},${record.lng || '0'}`,
           };
+
+          // Add optional date fields if provided
+          if (record.endDate && record.endDate.trim()) {
+            monumentData.endDate = record.endDate.trim();
+          }
+          if (record.startDateHijri && record.startDateHijri.trim()) {
+            monumentData.startDateHijri = record.startDateHijri.trim();
+            logger.info(`Adding startDateHijri for monument ${index + 1}: ${monumentData.startDateHijri}`);
+          }
+          if (record.endDateHijri && record.endDateHijri.trim()) {
+            monumentData.endDateHijri = record.endDateHijri.trim();
+            logger.info(`Adding endDateHijri for monument ${index + 1}: ${monumentData.endDateHijri}`);
+          }
 
           // Add descriptions if provided
           if (record.descriptionEn || record.descriptionAr) {

@@ -348,8 +348,10 @@ model Monument {
   lat                 String    @db.VarChar
   lng                 String    @db.VarChar
   image               String    @db.VarChar
-  mDate               String    @map("m_date") @db.VarChar
-  mDateHijri          String?   @map("m_date_Hijri") @db.VarChar
+  startDate           String    @map("start_date") @db.VarChar
+  endDate             String?   @map("end_date") @db.VarChar
+  startDateHijri      String?   @map("start_date_Hijri") @db.VarChar
+  endDateHijri        String?   @map("end_date_Hijri") @db.VarChar
   monumentsTypeId     Int       @map("monuments_type_id")
   eraId               Int       @map("era_id")
   dynastyId           Int       @map("dynasty_id")

@@ -143,11 +143,11 @@ export class SavedSearchesService {
     }
 
     if (savedSearch.dateFrom) {
-      where.mDate = { ...where.mDate, gte: savedSearch.dateFrom };
+      where.startDate = { ...where.startDate, gte: savedSearch.dateFrom };
     }
 
     if (savedSearch.dateTo) {
-      where.mDate = { ...where.mDate, lte: savedSearch.dateTo };
+      where.startDate = { ...where.startDate, lte: savedSearch.dateTo };
     }
 
     // Execute search

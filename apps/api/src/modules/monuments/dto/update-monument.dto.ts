@@ -34,11 +34,19 @@ export class UpdateMonumentDto {
 
   @IsString()
   @IsOptional()
-  mDate?: string;
+  startDate?: string;
 
   @IsString()
   @IsOptional()
-  mDateHijri?: string;
+  endDate?: string;
+
+  @IsString()
+  @IsOptional()
+  startDateHijri?: string;
+
+  @IsString()
+  @IsOptional()
+  endDateHijri?: string;
 
   @IsInt()
   @IsOptional()

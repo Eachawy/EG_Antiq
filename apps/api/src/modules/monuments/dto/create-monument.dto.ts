@@ -40,15 +40,25 @@ export class CreateMonumentDto {
   @IsOptional()
   image?: string;
 
-  @ApiPropertyOptional({ description: 'Monument date', example: '23/09/2025' })
+  @ApiPropertyOptional({ description: 'Monument start date', example: '2560 BC' })
   @IsString()
   @IsOptional()
-  mDate?: string;
+  startDate?: string;
 
-  @ApiPropertyOptional({ description: 'Monument date in Hijri calendar', example: '15/03/1446' })
+  @ApiPropertyOptional({ description: 'Monument end date', example: '2540 BC' })
   @IsString()
   @IsOptional()
-  mDateHijri?: string;
+  endDate?: string;
+
+  @ApiPropertyOptional({ description: 'Monument start date in Hijri calendar', example: '15/03/1446' })
+  @IsString()
+  @IsOptional()
+  startDateHijri?: string;
+
+  @ApiPropertyOptional({ description: 'Monument end date in Hijri calendar', example: '20/05/1446' })
+  @IsString()
+  @IsOptional()
+  endDateHijri?: string;
 
   @ApiProperty({ description: 'Monument type ID', example: 1 })
   @IsInt()

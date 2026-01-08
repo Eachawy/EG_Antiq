@@ -103,9 +103,9 @@ export class PortalMonumentsService {
     }
 
     if (dateFrom || dateTo) {
-      where.mDate = {};
-      if (dateFrom) where.mDate.gte = dateFrom;
-      if (dateTo) where.mDate.lte = dateTo;
+      where.startDate = {};
+      if (dateFrom) where.startDate.gte = dateFrom;
+      if (dateTo) where.startDate.lte = dateTo;
     }
 
     // Execute search
