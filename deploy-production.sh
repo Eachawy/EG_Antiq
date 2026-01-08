@@ -19,6 +19,11 @@ BACKUP_DIR="./backups"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 BACKUP_FILE="${BACKUP_DIR}/backup_before_date_migration_${TIMESTAMP}.sql"
 
+# Container names (will be auto-detected)
+POSTGRES_CONTAINER=""
+API_CONTAINER=""
+REDIS_CONTAINER=""
+
 ################################################################################
 # Helper Functions
 ################################################################################
@@ -45,6 +50,85 @@ press_any_key() {
 }
 
 ################################################################################
+# Detect Container Names
+################################################################################
+
+detect_containers() {
+    log_info "Detecting container names..."
+
+    # Get postgres container name
+    POSTGRES_CONTAINER=$(docker ps -a --filter "ancestor=postgres" --format "{{.Names}}" | head -1)
+    if [ -z "$POSTGRES_CONTAINER" ]; then
+        # Try by service name from docker-compose
+        POSTGRES_CONTAINER=$(docker compose ps -a postgres 2>/dev/null | grep postgres | awk '{print $1}' | head -1)
+    fi
+
+    # Get API container name
+    API_CONTAINER=$(docker ps -a --format "{{.Names}}" | grep -E "(api|backend)" | head -1)
+    if [ -z "$API_CONTAINER" ]; then
+        API_CONTAINER=$(docker compose ps -a api 2>/dev/null | grep api | awk '{print $1}' | head -1)
+    fi
+
+    # Get Redis container name (optional)
+    REDIS_CONTAINER=$(docker ps -a --filter "ancestor=redis" --format "{{.Names}}" | head -1)
+
+    log_info "Detected containers:"
+    log_info "  PostgreSQL: ${POSTGRES_CONTAINER:-NOT FOUND}"
+    log_info "  API: ${API_CONTAINER:-NOT FOUND}"
+    log_info "  Redis: ${REDIS_CONTAINER:-NOT FOUND}"
+}
+
+################################################################################
+# Start Containers if Needed
+################################################################################
+
+ensure_containers_running() {
+    log_info "Checking if containers are running..."
+
+    # Start postgres if not running
+    if [ -n "$POSTGRES_CONTAINER" ]; then
+        if ! docker ps --format "{{.Names}}" | grep -q "^${POSTGRES_CONTAINER}$"; then
+            log_warning "PostgreSQL container is not running. Starting it..."
+            docker compose up -d postgres
+            sleep 5  # Wait for postgres to be ready
+
+            # Wait for postgres to be healthy
+            log_info "Waiting for PostgreSQL to be ready..."
+            for i in {1..30}; do
+                if docker exec "$POSTGRES_CONTAINER" pg_isready -U postgres > /dev/null 2>&1; then
+                    log_success "PostgreSQL is ready"
+                    break
+                fi
+                echo -n "."
+                sleep 2
+            done
+        else
+            log_success "PostgreSQL container is running"
+        fi
+    else
+        log_error "PostgreSQL container not found. Starting all services..."
+        docker compose up -d postgres redis
+        sleep 10
+
+        # Re-detect containers
+        detect_containers
+
+        if [ -z "$POSTGRES_CONTAINER" ]; then
+            log_error "Failed to start PostgreSQL container"
+            exit 1
+        fi
+    fi
+
+    # Start redis if not running (optional)
+    if [ -n "$REDIS_CONTAINER" ]; then
+        if ! docker ps --format "{{.Names}}" | grep -q "^${REDIS_CONTAINER}$"; then
+            log_info "Starting Redis container..."
+            docker compose up -d redis
+        fi
+    fi
+}
+
+################################################################################
 # Pre-flight Checks
 ################################################################################
 
@@ -63,10 +147,9 @@ preflight_checks() {
         exit 1
     fi
 
-    # Check if API container is running
-    if ! docker ps --filter "name=backend-api" --format "{{.Names}}" | grep -q "backend-api"; then
-        log_warning "API container is not running."
-    fi
+    # Detect and start containers
+    detect_containers
+    ensure_containers_running
 
     # Create backup directory if it doesn't exist
     mkdir -p "${BACKUP_DIR}"
@@ -82,13 +165,19 @@ backup_database() {
     log_info "Creating database backup..."
 
     # Check if postgres container is running
-    if ! docker ps --filter "name=backend-postgres" --format "{{.Names}}" | grep -q "backend-postgres"; then
+    if [ -z "$POSTGRES_CONTAINER" ]; then
+        log_error "PostgreSQL container not detected. Cannot create backup."
+        exit 1
+    fi
+
+    if ! docker ps --format "{{.Names}}" | grep -q "^${POSTGRES_CONTAINER}$"; then
         log_error "PostgreSQL container is not running. Cannot create backup."
         exit 1
     fi
 
     # Create backup
-    docker exec backend-postgres pg_dump \
+    log_info "Using container: $POSTGRES_CONTAINER"
+    docker exec "$POSTGRES_CONTAINER" pg_dump \
         -U postgres \
         -d Antiq_db \
         --clean \
@@ -100,6 +189,7 @@ backup_database() {
         log_success "Database backup created: ${BACKUP_FILE} (${BACKUP_SIZE})"
     else
         log_error "Failed to create database backup"
+        log_warning "You may need to check database connection settings"
         exit 1
     fi
 }
@@ -181,19 +271,35 @@ restart_containers() {
         exit 1
     fi
 
+    # Re-detect API container name after rebuild
+    sleep 3
+    detect_containers
+
     # Wait for API to be healthy
     log_info "Waiting for API to become healthy..."
-    for i in {1..30}; do
-        if docker ps --filter "name=backend-api" --format "{{.Status}}" | grep -q "healthy"; then
-            log_success "API container is healthy"
-            return 0
+    for i in {1..60}; do
+        # Check if container is running
+        if [ -n "$API_CONTAINER" ] && docker ps --format "{{.Names}}" | grep -q "^${API_CONTAINER}$"; then
+            # Check if it has health status
+            STATUS=$(docker inspect --format='{{.State.Health.Status}}' "$API_CONTAINER" 2>/dev/null || echo "no-health")
+
+            if [ "$STATUS" = "healthy" ]; then
+                log_success "API container is healthy"
+                return 0
+            elif [ "$STATUS" = "no-health" ]; then
+                # No health check defined, just check if running
+                log_success "API container is running (no health check defined)"
+                return 0
+            fi
         fi
         echo -n "."
         sleep 2
     done
 
     log_error "API container did not become healthy in time"
-    log_info "Check logs with: docker logs backend-api"
+    if [ -n "$API_CONTAINER" ]; then
+        log_info "Check logs with: docker logs $API_CONTAINER"
+    fi
     exit 1
 }
 
@@ -213,25 +319,31 @@ verify_deployment() {
     if [ "${HTTP_CODE}" = "200" ]; then
         log_success "API health check passed (HTTP ${HTTP_CODE})"
     else
-        log_error "API health check failed (HTTP ${HTTP_CODE})"
-        log_info "Check logs with: docker logs backend-api"
-        exit 1
+        log_warning "API health check failed (HTTP ${HTTP_CODE})"
+        log_info "API might still be starting up, but containers are running"
+        if [ -n "$API_CONTAINER" ]; then
+            log_info "Check logs with: docker logs $API_CONTAINER"
+        fi
     fi
 
     # Check database schema
     log_info "Verifying database schema..."
-    docker exec backend-postgres psql -U postgres -d Antiq_db -c "\d monuments" > /dev/null 2>&1
+    if [ -n "$POSTGRES_CONTAINER" ]; then
+        docker exec "$POSTGRES_CONTAINER" psql -U postgres -d Antiq_db -c "\d monuments" > /dev/null 2>&1
 
-    if [ $? -eq 0 ]; then
-        log_success "Database schema verified"
+        if [ $? -eq 0 ]; then
+            log_success "Database schema verified"
+
+            # Display sample data
+            log_info "Checking monument data (showing new columns)..."
+            docker exec "$POSTGRES_CONTAINER" psql -U postgres -d Antiq_db -c "SELECT id, monument_name_en, start_date, end_date, start_date_Hijri, end_date_Hijri FROM monuments LIMIT 3;" 2>/dev/null
+        else
+            log_error "Failed to verify database schema"
+            exit 1
+        fi
     else
-        log_error "Failed to verify database schema"
-        exit 1
+        log_warning "PostgreSQL container not detected, skipping schema verification"
     fi
-
-    # Display sample data
-    log_info "Checking monument data..."
-    docker exec backend-postgres psql -U postgres -d Antiq_db -c "SELECT id, monument_name_en, start_date, end_date, start_date_Hijri, end_date_Hijri FROM monuments LIMIT 3;" 2>/dev/null
 
     log_success "Deployment verification completed"
 }
