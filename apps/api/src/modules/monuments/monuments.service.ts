@@ -231,13 +231,20 @@ export class MonumentsService {
    */
   async importFromCsv(file: Express.Multer.File) {
     try {
-      const csvContent = file.buffer.toString('utf-8');
+      // Remove BOM if present and convert to UTF-8
+      let csvContent = file.buffer.toString('utf-8');
+      if (csvContent.charCodeAt(0) === 0xFEFF) {
+        csvContent = csvContent.slice(1);
+        logger.info('Removed BOM character from CSV');
+      }
 
       // Parse CSV - returns array of objects with string values
       const records = parse(csvContent, {
         columns: true,
         skip_empty_lines: true,
         trim: true,
+        bom: true, // Handle BOM
+        relax_column_count: true, // Allow inconsistent column count
       }) as Record<string, string>[];
 
       let created = 0;
@@ -246,10 +253,25 @@ export class MonumentsService {
 
       logger.info(`Starting CSV import with ${records.length} records`);
 
+      // Log first record structure for debugging
+      if (records.length > 0) {
+        logger.info('CSV columns detected:', { columns: Object.keys(records[0]) });
+        logger.info('First record sample:', {
+          monumentNameEn: records[0].monumentNameEn,
+          monumentNameAr: records[0].monumentNameAr,
+          startDate: records[0].startDate,
+        });
+      }
+
       for (const [index, record] of records.entries()) {
         try {
           // Validate required fields
           if (!record.monumentNameEn || !record.monumentNameAr) {
+            // Log the actual record for debugging
+            logger.error(`Row ${index + 2} missing names. Available fields:`, {
+              fields: Object.keys(record),
+              values: record
+            });
             throw new Error('Monument name (English and Arabic) is required');
           }
 
