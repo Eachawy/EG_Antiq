@@ -14,6 +14,16 @@ export interface PasswordChangedEmailOptions {
   userName: string;
 }
 
+export interface ContactMessageNotificationOptions {
+  messageId: string;
+  senderName: string;
+  senderEmail: string;
+  message: string;
+  ipAddress?: string;
+  userAgent?: string;
+  createdAt: Date;
+}
+
 @Injectable()
 export class EmailService {
   private transporter: nodemailer.Transporter;
@@ -98,6 +108,46 @@ ${config.EMAIL_FROM_NAME}
       logger.error('Failed to send password changed email', { email, error });
       // Don't throw error for notification emails - password was already changed
       logger.warn('Password changed but notification email failed', { email });
+    }
+  }
+
+  /**
+   * Send contact form notification to admin
+   */
+  async sendContactNotification(options: ContactMessageNotificationOptions): Promise<void> {
+    const { messageId, senderName, senderEmail, message, ipAddress, userAgent, createdAt } = options;
+
+    const mailOptions = {
+      from: `"${config.EMAIL_FROM_NAME}" <${config.EMAIL_FROM}>`,
+      to: config.ADMIN_EMAIL,
+      replyTo: senderEmail,
+      subject: `New Contact Message from ${senderName}`,
+      html: this.getContactNotificationEmailTemplate(options),
+      text: `
+New Contact Message Received
+
+From: ${senderName} <${senderEmail}>
+Date: ${createdAt.toLocaleString()}
+Message ID: ${messageId}
+
+Message:
+${message}
+
+${ipAddress ? `IP Address: ${ipAddress}` : ''}
+${userAgent ? `User Agent: ${userAgent}` : ''}
+
+---
+This is an automated notification from the contact form.
+      `.trim(),
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      logger.info('Contact notification email sent to admin', { messageId, senderEmail });
+    } catch (error) {
+      logger.error('Failed to send contact notification email', { messageId, error });
+      // Don't throw error - message is already saved in database
+      logger.warn('Contact message saved but admin notification email failed', { messageId });
     }
   }
 
@@ -255,6 +305,131 @@ ${config.EMAIL_FROM_NAME}
       <p>Best regards,<br>${config.EMAIL_FROM_NAME}</p>
       <p>Date: ${new Date().toLocaleString()}</p>
       <p style="color: #999;">This is an automated message, please do not reply to this email.</p>
+    </div>
+  </div>
+</body>
+</html>
+    `.trim();
+  }
+
+  /**
+   * HTML template for contact notification email
+   */
+  private getContactNotificationEmailTemplate(options: ContactMessageNotificationOptions): string {
+    const { messageId, senderName, senderEmail, message, ipAddress, userAgent, createdAt } = options;
+
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Contact Message</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .container {
+      background-color: #f9f9f9;
+      border-radius: 8px;
+      padding: 30px;
+      margin: 20px 0;
+    }
+    .header {
+      background-color: #007bff;
+      color: white;
+      padding: 20px;
+      border-radius: 8px 8px 0 0;
+      margin: -30px -30px 20px -30px;
+    }
+    .info-row {
+      display: flex;
+      padding: 10px 0;
+      border-bottom: 1px solid #ddd;
+    }
+    .info-label {
+      font-weight: bold;
+      width: 120px;
+      color: #666;
+    }
+    .info-value {
+      flex: 1;
+    }
+    .message-box {
+      background-color: white;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 15px;
+      margin: 20px 0;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .metadata {
+      background-color: #f0f0f0;
+      padding: 12px;
+      border-radius: 4px;
+      margin: 20px 0;
+      font-size: 12px;
+      color: #666;
+    }
+    .footer {
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #ddd;
+      font-size: 12px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h2 style="margin: 0;">📧 New Contact Message</h2>
+    </div>
+
+    <div class="info-row">
+      <div class="info-label">From:</div>
+      <div class="info-value">${senderName}</div>
+    </div>
+
+    <div class="info-row">
+      <div class="info-label">Email:</div>
+      <div class="info-value"><a href="mailto:${senderEmail}">${senderEmail}</a></div>
+    </div>
+
+    <div class="info-row">
+      <div class="info-label">Date:</div>
+      <div class="info-value">${createdAt.toLocaleString()}</div>
+    </div>
+
+    <div class="info-row" style="border-bottom: none;">
+      <div class="info-label">Message ID:</div>
+      <div class="info-value" style="font-family: monospace; font-size: 11px;">${messageId}</div>
+    </div>
+
+    <h3 style="margin-top: 25px; margin-bottom: 10px;">Message:</h3>
+    <div class="message-box">${message}</div>
+
+    ${ipAddress || userAgent ? `
+    <div class="metadata">
+      <strong>Metadata:</strong><br>
+      ${ipAddress ? `IP Address: ${ipAddress}<br>` : ''}
+      ${userAgent ? `User Agent: ${userAgent}` : ''}
+    </div>
+    ` : ''}
+
+    <p style="margin-top: 20px;">
+      <strong>💡 Tip:</strong> You can reply directly to this email to respond to ${senderName}.
+    </p>
+
+    <div class="footer">
+      <p style="color: #999;">This is an automated notification from the contact form.</p>
+      <p style="color: #999;">EG Antiq Portal - ${config.EMAIL_FROM_NAME}</p>
     </div>
   </div>
 </body>

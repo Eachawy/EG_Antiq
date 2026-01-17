@@ -53,6 +53,7 @@ const configSchema = z.object({
   EMAIL_PASSWORD: z.string().default(''),
   EMAIL_FROM: z.string().default('noreply@example.com'),
   EMAIL_FROM_NAME: z.string().default('EG Antiq'),
+  ADMIN_EMAIL: z.string().email().default('admin@example.com'),
   FRONTEND_URL: z.string().default('http://localhost:3000'),
 });
 

@@ -1,12 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { PrismaService } from '../../common/services/prisma.service';
+import { EmailService } from '../../common/services/email.service';
 import { CreateContactMessageDto } from './dto/create-contact-message.dto';
 import { logger } from '../../logger';
 
 @Injectable()
 export class ContactService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly emailService: EmailService,
+  ) {}
 
   /**
    * Submit a contact message (public endpoint)
@@ -36,8 +40,16 @@ export class ContactService {
       portalUserId,
     });
 
-    // TODO: Send email notification to admin
-    // await this.emailService.sendContactNotification(contactMessage);
+    // Send email notification to admin
+    await this.emailService.sendContactNotification({
+      messageId: contactMessage.id,
+      senderName: contactMessage.name,
+      senderEmail: contactMessage.email,
+      message: contactMessage.message,
+      ipAddress: contactMessage.ipAddress || undefined,
+      userAgent: contactMessage.userAgent || undefined,
+      createdAt: contactMessage.createdAt,
+    });
 
     return contactMessage;
   }
