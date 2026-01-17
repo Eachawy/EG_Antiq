@@ -48,10 +48,15 @@ The API follows a layered architecture with feature modules:
 
 **Admin/Organization Domain** (for staff managing the system):
 - **auth/** - Admin JWT authentication for organization users
+- **users/** - User management (admin)
 - **roles/** - RBAC for admin users
 - **monuments/** - Monument data management (admin)
 - **eras/**, **dynasties/**, **monument-types/** - Reference data management
 - **gallery/**, **description-monuments/**, **monuments-era/** - Monument metadata
+- **sources/** - Academic and historical sources management
+- **books/** - Books and publications management
+- **monument-sources/**, **monument-books/** - Monument-source and monument-book relationships
+- **upload/** - File upload handling
 - **admin-portal/** - Admin portal management features
 
 **Portal Domain** (for public users browsing monuments):
@@ -115,6 +120,7 @@ This application has **two separate JWT authentication systems**:
 - `roles`, `permissions`, `user_roles`, `role_permissions` - RBAC system
 - `refresh_tokens` - JWT refresh tokens for admin users
 - `audit_logs` - Audit trail for compliance
+- `sessions` - User session management
 
 **Key Portal Tables**:
 - `portal_users` - Portal user accounts
@@ -133,6 +139,12 @@ This application has **two separate JWT authentication systems**:
 - `gallery` - Monument images
 - `description_monuments` - Monument descriptions
 - `monuments_era` - Monument-era relationships
+
+**Sources and Books Tables**:
+- `sources` - Academic and historical sources (journals, books, websites, etc.)
+- `books` - Books and publications about monuments
+- `monument_sources` - Links monuments to their sources
+- `monument_books` - Links monuments to related books
 
 **Schema Patterns**:
 - UUID primary keys for users/auth tables, auto-increment integers for monument tables
@@ -173,16 +185,28 @@ Default admin credentials after seed: `admin@example.com` / `Admin123!`
 
 ### Error Handling Pattern
 
-Custom error class in `packages/common/src/errors/base.error.ts`:
+Custom error classes in `packages/common/src/errors/base.error.ts`:
 - `AppError(code, message, statusCode)` - Generic error with custom code
+- `ValidationError` - 400 Bad Request
+- `UnauthorizedError` - 401 Unauthorized
+- `ForbiddenError` - 403 Forbidden
+- `NotFoundError` - 404 Not Found
+- `ConflictError` - 409 Conflict
+- `BusinessError` - 422 Unprocessable Entity
+- `InternalError` - 500 Internal Server Error
+- `ServiceUnavailableError` - 503 Service Unavailable
 
 Global exception filter (`apps/api/src/common/filters/all-exceptions.filter.ts`) catches all errors and returns:
 ```json
 {
   "error": {
     "code": "ERROR_CODE",
-    "message": "Human-readable message",
-    "correlationId": "uuid-v4"
+    "message": "Human-readable message"
+  },
+  "meta": {
+    "timestamp": "2024-01-01T00:00:00.000Z",
+    "correlationId": "uuid-v4",
+    "path": "/api/v1/path"
   }
 }
 ```
@@ -261,6 +285,7 @@ Environment variables are validated on startup using Zod schema in `apps/api/src
 - `DATABASE_URL` - PostgreSQL connection string
 - `JWT_SECRET` - Admin JWT secret (32+ characters)
 - `PORTAL_JWT_SECRET` - Portal JWT secret (32+ characters)
+- `API_URL` - Base API URL (required for OAuth callbacks)
 - OAuth credentials for Google, Facebook, Apple (if using OAuth)
 - Email service credentials
 
@@ -278,6 +303,14 @@ pnpm prisma:migrate:dev --name your_descriptive_name
 ```
 
 For data migrations, create a migration and add data operations in the migration SQL file.
+
+### File Upload Handling
+
+The API serves uploaded files statically from `/uploads/` path:
+- **Development**: Files stored in `apps/api/uploads/`
+- **Production (Docker)**: Files stored in `/app/uploads/`
+- Use the `upload/` module for file upload endpoints
+- Images are served with CORS enabled for cross-origin access
 
 ## Quick Reference
 

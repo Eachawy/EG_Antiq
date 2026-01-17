@@ -102,15 +102,18 @@ export class PortalMonumentsService {
       where.monumentsTypeId = { in: monumentTypeIds };
     }
 
-    if (dateFrom || dateTo) {
-      where.startDate = {};
-      if (dateFrom) where.startDate.gte = dateFrom;
-      if (dateTo) where.startDate.lte = dateTo;
-    }
+    // Date range filtering - we'll fetch all and filter in memory
+    // because string comparison doesn't work for negative numbers
+    const hasDateFilter = !!(dateFrom || dateTo);
 
     // Execute search
-    const [monuments, total] = await Promise.all([
-      this.prisma.monument.findMany({
+    let monuments: any[];
+    let total: number;
+
+    if (hasDateFilter) {
+      // Fetch all monuments matching other criteria (without pagination)
+      // then filter by date in memory
+      const allMonuments = await this.prisma.monument.findMany({
         where,
         include: {
           monumentType: true,
@@ -122,11 +125,66 @@ export class PortalMonumentsService {
           },
         },
         orderBy: { createdAt: 'desc' },
-        skip,
-        take,
-      }),
-      this.prisma.monument.count({ where }),
-    ]);
+      });
+
+      // Filter by date range (numeric comparison)
+      // Helper to parse dates - handles both regular minus (-) and EN DASH (–)
+      const parseDate = (dateStr: string | null | undefined): number | null => {
+        if (!dateStr) return null;
+        // Replace EN DASH (U+2013) with regular minus before parsing
+        const normalized = dateStr.replace(/–/g, '-');
+        const parsed = parseInt(normalized, 10);
+        return isNaN(parsed) ? null : parsed;
+      };
+
+      const dateFromNum = parseDate(dateFrom);
+      const dateToNum = parseDate(dateTo);
+
+      const filteredMonuments = allMonuments.filter((monument) => {
+        const startDate = parseDate(monument.startDate);
+        const endDate = parseDate(monument.endDate);
+
+        // Monument date range overlaps with search range if:
+        // monument.startDate <= dateTo AND monument.endDate >= dateFrom
+        let matches = true;
+
+        if (dateToNum !== null && startDate !== null) {
+          matches = matches && startDate <= dateToNum;
+        }
+
+        if (dateFromNum !== null && endDate !== null) {
+          matches = matches && endDate >= dateFromNum;
+        }
+
+        return matches;
+      });
+
+      total = filteredMonuments.length;
+      // Apply pagination to filtered results
+      const startIndex = skip || 0;
+      const endIndex = startIndex + (take || filteredMonuments.length);
+      monuments = filteredMonuments.slice(startIndex, endIndex);
+    } else {
+      // No date filter - use normal pagination
+      [monuments, total] = await Promise.all([
+        this.prisma.monument.findMany({
+          where,
+          include: {
+            monumentType: true,
+            era: true,
+            dynasty: true,
+            galleries: {
+              take: 1,
+              orderBy: { createdAt: 'asc' },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take,
+        }),
+        this.prisma.monument.count({ where }),
+      ]);
+    }
 
     // If user is authenticated, check which monuments are favorited
     let monumentsWithFavorites = monuments;
