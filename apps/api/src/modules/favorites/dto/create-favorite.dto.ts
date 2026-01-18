@@ -1,4 +1,5 @@
 import { IsInt, IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateFavoriteDto {
@@ -6,6 +7,7 @@ export class CreateFavoriteDto {
     description: 'Monument ID',
     example: 1,
   })
+  @Type(() => Number)
   @IsInt()
   monumentId: number;
 

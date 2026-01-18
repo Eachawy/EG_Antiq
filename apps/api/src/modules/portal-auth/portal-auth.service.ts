@@ -286,14 +286,34 @@ export class PortalAuthService {
    * Validate portal user (used by JWT strategy)
    */
   async validatePortalUser(userId: string) {
+    logger.info('Validating portal user', { userId });
+
     const portalUser = await this.prisma.portalUser.findUnique({
       where: { id: userId },
     });
 
-    if (!portalUser || portalUser.deletedAt || portalUser.status !== 'ACTIVE') {
+    logger.info('Portal user found', {
+      found: !!portalUser,
+      deletedAt: portalUser?.deletedAt,
+      status: portalUser?.status
+    });
+
+    if (!portalUser) {
+      logger.warn('Portal user not found', { userId });
       return null;
     }
 
+    if (portalUser.deletedAt) {
+      logger.warn('Portal user is deleted', { userId });
+      return null;
+    }
+
+    if (portalUser.status !== 'ACTIVE') {
+      logger.warn('Portal user is not active', { userId, status: portalUser.status });
+      return null;
+    }
+
+    logger.info('Portal user validated successfully', { userId, email: portalUser.email });
     return portalUser;
   }
 

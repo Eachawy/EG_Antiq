@@ -18,11 +18,11 @@ import { CurrentPortalUser, AuthenticatedPortalUser } from '../portal-auth/decor
 
 @ApiTags('Newsletter')
 @Controller('portal/newsletter')
+@Public()
 export class NewsletterController {
   constructor(private readonly newsletterService: NewsletterService) {}
 
   @Post('subscribe')
-  @Public()
   @Throttle({ default: { limit: 3, ttl: 60000 } }) // 3 requests per minute
   @ApiOperation({ summary: 'Subscribe to newsletter (public)' })
   @ApiResponse({ status: 201, description: 'Subscription initiated successfully' })
@@ -38,7 +38,6 @@ export class NewsletterController {
   }
 
   @Post('verify')
-  @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Verify newsletter subscription' })
   @ApiResponse({ status: 200, description: 'Subscription verified successfully' })
@@ -51,7 +50,6 @@ export class NewsletterController {
   }
 
   @Post('unsubscribe')
-  @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Unsubscribe from newsletter' })
   @ApiResponse({ status: 200, description: 'Unsubscribed successfully' })

@@ -26,6 +26,11 @@ export class PortalJwtStrategy extends PassportStrategy(Strategy, 'portal-jwt') 
       throw new UnauthorizedException('Invalid token');
     }
 
-    return portalUser;
+    // Return the expected format for CurrentPortalUser decorator
+    return {
+      sub: portalUser.id,
+      email: portalUser.email,
+      type: 'portal' as const,
+    };
   }
 }

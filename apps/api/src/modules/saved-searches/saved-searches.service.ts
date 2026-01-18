@@ -14,12 +14,28 @@ export class SavedSearchesService {
    * Get all saved searches for a user
    */
   async getSavedSearches(portalUserId: string) {
-    const savedSearches = await this.prisma.savedSearch.findMany({
-      where: { portalUserId },
-      orderBy: { createdAt: 'desc' },
-    });
+    try {
+      const savedSearches = await this.prisma.savedSearch.findMany({
+        where: { portalUserId },
+        orderBy: { createdAt: 'desc' },
+      });
 
-    return savedSearches;
+      const safeSearches = savedSearches || [];
+
+      logger.info('Saved searches retrieved', {
+        portalUserId,
+        count: safeSearches.length
+      });
+
+      return safeSearches;
+    } catch (error) {
+      logger.error('Error fetching saved searches', {
+        portalUserId,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      // Return empty array instead of throwing error - safer for UI
+      return [];
+    }
   }
 
   /**

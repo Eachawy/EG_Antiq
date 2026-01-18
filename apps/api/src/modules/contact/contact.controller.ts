@@ -10,11 +10,11 @@ import { CurrentPortalUser } from '../portal-auth/decorators/current-portal-user
 
 @ApiTags('Contact')
 @Controller('portal/contact')
+@Public()
 export class ContactController {
   constructor(private readonly contactService: ContactService) {}
 
   @Post()
-  @Public()
   @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 requests per minute for anonymous users
   @ApiOperation({ summary: 'Submit a contact message (public)' })
   @ApiResponse({ status: 201, description: 'Message submitted successfully' })

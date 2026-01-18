@@ -16,9 +16,11 @@ import { CreateFavoriteDto } from './dto/create-favorite.dto';
 import { PaginationDto } from './dto/pagination.dto';
 import { PortalJwtAuthGuard } from '../portal-auth/guards/portal-jwt-auth.guard';
 import { CurrentPortalUser, AuthenticatedPortalUser } from '../portal-auth/decorators/current-portal-user.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('Favorites')
 @Controller('portal/favorites')
+@Public()
 @UseGuards(PortalJwtAuthGuard)
 @ApiBearerAuth()
 export class FavoritesController {

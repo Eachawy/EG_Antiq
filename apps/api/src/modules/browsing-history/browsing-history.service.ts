@@ -16,14 +16,92 @@ export class BrowsingHistoryService {
   async getHistory(portalUserId: string, paginationDto: PaginationDto) {
     const { page = 1, limit } = paginationDto;
 
-    // If limit is 0 or undefined, return all results without pagination
-    const skipPagination = !limit || limit === 0;
-    const skip = skipPagination ? undefined : (page - 1) * limit;
-    const take = skipPagination ? undefined : limit;
+    try {
+      // If limit is 0 or undefined, return all results without pagination
+      const skipPagination = !limit || limit === 0;
+      const skip = skipPagination ? undefined : (page - 1) * limit;
+      const take = skipPagination ? undefined : limit;
 
-    const [history, total] = await Promise.all([
-      this.prisma.browsingHistory.findMany({
-        where: { portalUserId },
+      const [history, total] = await Promise.all([
+        this.prisma.browsingHistory.findMany({
+          where: { portalUserId },
+          include: {
+            monument: {
+              include: {
+                monumentType: true,
+                era: true,
+                dynasty: true,
+                galleries: {
+                  take: 1,
+                  orderBy: { createdAt: 'asc' },
+                },
+              },
+            },
+          },
+          orderBy: { visitedAt: 'desc' },
+          skip,
+          take,
+        }),
+        this.prisma.browsingHistory.count({ where: { portalUserId } }),
+      ]);
+
+      // Ensure we always return an array, even if empty
+      const safeHistory = history || [];
+
+      logger.info('Browsing history retrieved', {
+        portalUserId,
+        count: safeHistory.length,
+        total
+      });
+
+      return {
+        data: safeHistory,
+        pagination: skipPagination
+          ? { total }
+          : {
+              page,
+              limit: limit!,
+              total,
+              totalPages: total > 0 && limit ? Math.ceil(total / limit) : 0,
+            },
+      };
+    } catch (error) {
+      logger.error('Error fetching browsing history', {
+        portalUserId,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      throw new AppError('HISTORY_FETCH_ERROR', 'Failed to fetch browsing history', 500);
+    }
+  }
+
+  /**
+   * Track a monument visit
+   */
+  async trackVisit(portalUserId: string, trackVisitDto: TrackVisitDto) {
+    try {
+      const { monumentId, durationSeconds } = trackVisitDto;
+
+      logger.info('Tracking visit', { portalUserId, monumentId, durationSeconds });
+
+      // Check if monument exists
+      const monument = await this.prisma.monument.findUnique({
+        where: { id: monumentId },
+      });
+
+      if (!monument) {
+        logger.warn('Monument not found for tracking', { monumentId });
+        throw new AppError('MONUMENT_NOT_FOUND', 'Monument not found', 404);
+      }
+
+      // Create browsing history entry
+      const historyEntry = await this.prisma.browsingHistory.create({
+        data: {
+          id: crypto.randomUUID(),
+          portalUserId,
+          monumentId,
+          durationSeconds,
+          visitedAt: new Date(),
+        },
         include: {
           monument: {
             include: {
@@ -37,68 +115,27 @@ export class BrowsingHistoryService {
             },
           },
         },
-        orderBy: { visitedAt: 'desc' },
-        skip,
-        take,
-      }),
-      this.prisma.browsingHistory.count({ where: { portalUserId } }),
-    ]);
+      });
 
-    return {
-      data: history,
-      pagination: skipPagination
-        ? { total }
-        : {
-            page,
-            limit: limit!,
-            total,
-            totalPages: Math.ceil(total / limit!),
-          },
-    };
-  }
+      logger.info('Monument visit tracked successfully', { portalUserId, monumentId });
 
-  /**
-   * Track a monument visit
-   */
-  async trackVisit(portalUserId: string, trackVisitDto: TrackVisitDto) {
-    const { monumentId, durationSeconds } = trackVisitDto;
-
-    // Check if monument exists
-    const monument = await this.prisma.monument.findUnique({
-      where: { id: monumentId },
-    });
-
-    if (!monument) {
-      throw new AppError('MONUMENT_NOT_FOUND', 'Monument not found', 404);
-    }
-
-    // Create browsing history entry
-    const historyEntry = await this.prisma.browsingHistory.create({
-      data: {
-        id: crypto.randomUUID(),
+      return historyEntry;
+    } catch (error) {
+      logger.error('Error tracking monument visit', {
         portalUserId,
-        monumentId,
-        durationSeconds,
-        visitedAt: new Date(),
-      },
-      include: {
-        monument: {
-          include: {
-            monumentType: true,
-            era: true,
-            dynasty: true,
-            galleries: {
-              take: 1,
-              orderBy: { createdAt: 'asc' },
-            },
-          },
-        },
-      },
-    });
+        monumentId: trackVisitDto.monumentId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
 
-    logger.info('Monument visit tracked', { portalUserId, monumentId });
+      // Re-throw AppError as-is
+      if (error instanceof AppError) {
+        throw error;
+      }
 
-    return historyEntry;
+      // Wrap other errors
+      throw new AppError('TRACK_VISIT_ERROR', 'Failed to track monument visit', 500);
+    }
   }
 
   /**

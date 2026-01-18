@@ -16,9 +16,11 @@ import { CreateSavedSearchDto } from './dto/create-saved-search.dto';
 import { UpdateSavedSearchDto } from './dto/update-saved-search.dto';
 import { PortalJwtAuthGuard } from '../portal-auth/guards/portal-jwt-auth.guard';
 import { CurrentPortalUser, AuthenticatedPortalUser } from '../portal-auth/decorators/current-portal-user.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('Saved Searches')
 @Controller('portal/saved-searches')
+@Public()
 @UseGuards(PortalJwtAuthGuard)
 @ApiBearerAuth()
 export class SavedSearchesController {

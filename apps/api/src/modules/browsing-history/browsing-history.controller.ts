@@ -16,9 +16,11 @@ import { TrackVisitDto } from './dto/track-visit.dto';
 import { PaginationDto } from '../favorites/dto/pagination.dto';
 import { PortalJwtAuthGuard } from '../portal-auth/guards/portal-jwt-auth.guard';
 import { CurrentPortalUser, AuthenticatedPortalUser } from '../portal-auth/decorators/current-portal-user.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('Browsing History')
 @Controller('portal/history')
+@Public()
 @UseGuards(PortalJwtAuthGuard)
 @ApiBearerAuth()
 export class BrowsingHistoryController {

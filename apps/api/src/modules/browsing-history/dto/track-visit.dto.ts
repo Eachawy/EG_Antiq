@@ -1,4 +1,5 @@
 import { IsInt, IsOptional } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class TrackVisitDto {
@@ -6,6 +7,7 @@ export class TrackVisitDto {
     description: 'Monument ID',
     example: 1,
   })
+  @Type(() => Number)
   @IsInt()
   monumentId: number;
 
@@ -15,6 +17,7 @@ export class TrackVisitDto {
     required: false,
   })
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   durationSeconds?: number;
 }

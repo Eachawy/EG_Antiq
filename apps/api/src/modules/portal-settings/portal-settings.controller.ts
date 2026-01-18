@@ -14,9 +14,11 @@ import { UpdateSettingsDto } from './dto/update-settings.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { PortalJwtAuthGuard } from '../portal-auth/guards/portal-jwt-auth.guard';
 import { CurrentPortalUser, AuthenticatedPortalUser } from '../portal-auth/decorators/current-portal-user.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('Portal Settings')
 @Controller('portal/settings')
+@Public()
 @UseGuards(PortalJwtAuthGuard)
 @ApiBearerAuth()
 export class PortalSettingsController {

@@ -4,9 +4,11 @@ import { PortalUsersService } from './portal-users.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { PortalJwtAuthGuard } from '../portal-auth/guards/portal-jwt-auth.guard';
 import { CurrentPortalUser, AuthenticatedPortalUser } from '../portal-auth/decorators/current-portal-user.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('Portal Users')
 @Controller('portal/users')
+@Public()
 @UseGuards(PortalJwtAuthGuard)
 @ApiBearerAuth()
 export class PortalUsersController {
