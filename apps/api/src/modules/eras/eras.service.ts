@@ -36,7 +36,21 @@ export class ErasService {
       include: {
         dynasties: true,
         monuments: {
-          take: 10,
+          take: 6,
+          include: {
+            monumentType: true,
+            dynasty: true,
+            era: true,
+            galleries: {
+              take: 1,
+              orderBy: {
+                id: 'asc',
+              },
+            },
+          },
+          orderBy: {
+            id: 'asc',
+          },
         },
       },
     });
