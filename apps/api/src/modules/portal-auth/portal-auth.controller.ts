@@ -1,7 +1,7 @@
-import { Body, Controller, Post, HttpCode, HttpStatus, Get, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Post, HttpCode, HttpStatus, Get, Req, Res, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { Public } from '../auth/decorators/public.decorator';
 import { PortalAuthService } from './portal-auth.service';
 import { RegisterDto } from './dto/register.dto';
@@ -14,6 +14,7 @@ import {
 } from './dto/reset-password.dto';
 import { AppleAuthDto } from './dto/apple-auth.dto';
 import { AppleOAuthService } from './strategies/apple-oauth.strategy';
+import { config } from '../../config';
 
 @ApiTags('Portal Auth')
 @Controller('portal/auth')
@@ -121,14 +122,16 @@ export class PortalAuthController {
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   @ApiOperation({ summary: 'Google OAuth callback' })
-  @ApiResponse({ status: 200, description: 'Login successful' })
-  async googleCallback(@Req() req: Request) {
+  @ApiResponse({ status: 302, description: 'Redirects to frontend with tokens' })
+  async googleCallback(@Req() req: Request, @Res() res: Response) {
     const oauthUser = req.user as any;
     const result = await this.portalAuthService.handleOAuthLogin(oauthUser);
-    return {
-      data: result,
-      message: 'Login successful',
-    };
+
+    // Redirect to frontend callback page with tokens in URL
+    const frontendUrl = config.FRONTEND_URL || 'http://localhost:3002';
+    const callbackUrl = `${frontendUrl}/auth/callback?access_token=${encodeURIComponent(result.accessToken)}&refresh_token=${encodeURIComponent(result.refreshToken)}&user=${encodeURIComponent(JSON.stringify(result.user))}`;
+
+    res.redirect(callbackUrl);
   }
 
   @Get('facebook')
@@ -142,14 +145,16 @@ export class PortalAuthController {
   @Get('facebook/callback')
   @UseGuards(AuthGuard('facebook'))
   @ApiOperation({ summary: 'Facebook OAuth callback' })
-  @ApiResponse({ status: 200, description: 'Login successful' })
-  async facebookCallback(@Req() req: Request) {
+  @ApiResponse({ status: 302, description: 'Redirects to frontend with tokens' })
+  async facebookCallback(@Req() req: Request, @Res() res: Response) {
     const oauthUser = req.user as any;
     const result = await this.portalAuthService.handleOAuthLogin(oauthUser);
-    return {
-      data: result,
-      message: 'Login successful',
-    };
+
+    // Redirect to frontend callback page with tokens in URL
+    const frontendUrl = config.FRONTEND_URL || 'http://localhost:3002';
+    const callbackUrl = `${frontendUrl}/auth/callback?access_token=${encodeURIComponent(result.accessToken)}&refresh_token=${encodeURIComponent(result.refreshToken)}&user=${encodeURIComponent(JSON.stringify(result.user))}`;
+
+    res.redirect(callbackUrl);
   }
 
   @Post('apple')
