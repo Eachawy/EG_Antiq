@@ -66,12 +66,20 @@ echo -e "${GREEN}✓ Container state backed up to $BACKUP_DIR/containers_state_$
 echo ""
 
 echo -e "${YELLOW}Step 3: Creating database backup...${NC}"
-# Production database name (as configured in docker-compose.production.yml)
-DB_NAME="antiq_production"
-
 # Backup database (IMPORTANT: Preserves all data)
 POSTGRES_CONTAINER=$(docker compose ps -q postgres)
 if [ -n "$POSTGRES_CONTAINER" ]; then
+    # Auto-detect database name by checking which one exists
+    echo "Detecting database name..."
+    if docker exec "$POSTGRES_CONTAINER" psql -U postgres -lqt | cut -d \| -f 1 | grep -qw antiq_production; then
+        DB_NAME="antiq_production"
+    elif docker exec "$POSTGRES_CONTAINER" psql -U postgres -lqt | cut -d \| -f 1 | grep -qw Antiq_db; then
+        DB_NAME="Antiq_db"
+    else
+        echo -e "${RED}Error: No Antiq database found!${NC}"
+        exit 1
+    fi
+
     echo "Backing up database: $DB_NAME"
     docker exec "$POSTGRES_CONTAINER" pg_dump -U postgres -d "$DB_NAME" > "$BACKUP_DIR/database_$TIMESTAMP.sql"
     BACKUP_SIZE=$(du -h "$BACKUP_DIR/database_$TIMESTAMP.sql" | cut -f1)
