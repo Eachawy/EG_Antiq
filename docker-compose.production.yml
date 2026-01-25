@@ -68,7 +68,7 @@ services:
       target: production
     container_name: production-api
     env_file:
-      - .env
+      - .env.production
     environment:
       NODE_ENV: production
       DATABASE_URL: postgresql://postgres:${DATABASE_PASSWORD}@postgres:5433/antiq_production?schema=public
