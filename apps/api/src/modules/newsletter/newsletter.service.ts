@@ -491,11 +491,13 @@ export class NewsletterService {
 
     // Get current date for subject and template
     const currentDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+    const currentYear = new Date().getFullYear().toString();
     const subject = `Kemetra Newsletter - ${currentDate}`;
     const content = 'Explore our latest archaeological discoveries';
 
-    // Replace date placeholder in template
+    // Replace date and year placeholders in template
     template = template.replace(/\{\{newsletter_date\}\}/gi, currentDate);
+    template = template.replace(/\{\{current_year\}\}/gi, currentYear);
 
     // Use the existing sendNewsletter method with the template
     return this.sendNewsletter(
