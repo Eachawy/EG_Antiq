@@ -69,7 +69,7 @@ echo -e "${YELLOW}Step 3: Creating database backup...${NC}"
 # Backup database (IMPORTANT: Preserves all data)
 POSTGRES_CONTAINER=$(docker compose ps -q postgres)
 if [ -n "$POSTGRES_CONTAINER" ]; then
-    docker exec "$POSTGRES_CONTAINER" pg_dump -U postgres -d Antiq_db > "$BACKUP_DIR/database_$TIMESTAMP.sql"
+    docker exec "$POSTGRES_CONTAINER" pg_dump -U postgres -d antiq_production > "$BACKUP_DIR/database_$TIMESTAMP.sql"
     BACKUP_SIZE=$(du -h "$BACKUP_DIR/database_$TIMESTAMP.sql" | cut -f1)
     echo -e "${GREEN}✓ Database backed up: $BACKUP_DIR/database_$TIMESTAMP.sql ($BACKUP_SIZE)${NC}"
 else
