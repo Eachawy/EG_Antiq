@@ -442,7 +442,7 @@ This is an automated notification from the contact form.
 
     <div class="footer">
       <p style="color: #999;">This is an automated notification from the contact form.</p>
-      <p style="color: #999;">EG Antiq Portal - ${config.EMAIL_FROM_NAME}</p>
+      <p style="color: #999;">Kemetra Portal - ${config.EMAIL_FROM_NAME}</p>
     </div>
   </div>
 </body>
@@ -459,9 +459,9 @@ This is an automated notification from the contact form.
     const mailOptions = {
       from: `"${config.EMAIL_FROM_NAME}" <${config.EMAIL_FROM}>`,
       to: email,
-      subject: 'Welcome to EG Antiq Newsletter',
+      subject: 'Welcome to Kemetra Newsletter',
       html: this.getNewsletterWelcomeTemplate(unsubscribeUrl),
-      text: `Welcome to EG Antiq Newsletter! You've been successfully subscribed.\n\nUnsubscribe: ${unsubscribeUrl}`,
+      text: `Welcome to Kemetra Newsletter! You've been successfully subscribed.\n\nUnsubscribe: ${unsubscribeUrl}`,
     };
 
     try {
@@ -502,7 +502,7 @@ This is an automated notification from the contact form.
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome to EG Antiq Newsletter</title>
+  <title>Welcome to Kemetra Newsletter</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -536,7 +536,7 @@ This is an automated notification from the contact form.
 </head>
 <body>
   <div class="container">
-    <h2>Welcome to EG Antiq Newsletter!</h2>
+    <h2>Welcome to Kemetra Newsletter!</h2>
     <p>Thank you for subscribing to our newsletter. You'll receive updates about ancient Egyptian monuments, discoveries, and historical insights.</p>
     <p>Our newsletters are sent monthly with curated content featuring:</p>
     <ul>
