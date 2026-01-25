@@ -107,7 +107,17 @@ docker compose up -d api
 echo -e "${GREEN}✓ API container started${NC}"
 echo ""
 
-echo -e "${YELLOW}Step 7: Waiting for API to be ready...${NC}"
+echo -e "${YELLOW}Step 7: Restarting Nginx to load updated configuration...${NC}"
+# Restart Nginx if it exists (for production setup)
+if docker compose ps | grep -q nginx; then
+    docker compose restart nginx
+    echo -e "${GREEN}✓ Nginx restarted with new configuration${NC}"
+else
+    echo -e "${YELLOW}! Nginx container not found, skipping restart${NC}"
+fi
+echo ""
+
+echo -e "${YELLOW}Step 8: Waiting for API to be ready...${NC}"
 sleep 10
 
 # Health check
@@ -131,11 +141,11 @@ if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
 fi
 
 echo ""
-echo -e "${YELLOW}Step 8: Checking container status...${NC}"
+echo -e "${YELLOW}Step 9: Checking container status...${NC}"
 docker compose ps
 echo ""
 
-echo -e "${YELLOW}Step 9: Recent logs...${NC}"
+echo -e "${YELLOW}Step 10: Recent logs...${NC}"
 docker compose logs --tail=30 api
 echo ""
 
