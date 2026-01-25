@@ -66,10 +66,14 @@ echo -e "${GREEN}✓ Container state backed up to $BACKUP_DIR/containers_state_$
 echo ""
 
 echo -e "${YELLOW}Step 3: Creating database backup...${NC}"
+# Production database name (as configured in docker-compose.production.yml)
+DB_NAME="antiq_production"
+
 # Backup database (IMPORTANT: Preserves all data)
 POSTGRES_CONTAINER=$(docker compose ps -q postgres)
 if [ -n "$POSTGRES_CONTAINER" ]; then
-    docker exec "$POSTGRES_CONTAINER" pg_dump -U postgres -d antiq_production > "$BACKUP_DIR/database_$TIMESTAMP.sql"
+    echo "Backing up database: $DB_NAME"
+    docker exec "$POSTGRES_CONTAINER" pg_dump -U postgres -d "$DB_NAME" > "$BACKUP_DIR/database_$TIMESTAMP.sql"
     BACKUP_SIZE=$(du -h "$BACKUP_DIR/database_$TIMESTAMP.sql" | cut -f1)
     echo -e "${GREEN}✓ Database backed up: $BACKUP_DIR/database_$TIMESTAMP.sql ($BACKUP_SIZE)${NC}"
 else
@@ -143,7 +147,7 @@ echo "  - Restart: docker compose restart api"
 echo ""
 echo "Rollback instructions (if needed):"
 echo "  1. Stop API: docker compose stop api"
-echo "  2. Restore DB: docker exec -i \$(docker compose ps -q postgres) psql -U postgres -d Antiq_db < $BACKUP_DIR/database_$TIMESTAMP.sql"
+echo "  2. Restore DB: docker exec -i \$(docker compose ps -q postgres) psql -U postgres -d $DB_NAME < $BACKUP_DIR/database_$TIMESTAMP.sql"
 echo "  3. Revert code: git checkout <previous-commit>"
 echo "  4. Rebuild: docker compose build api && docker compose up -d api"
 echo ""
