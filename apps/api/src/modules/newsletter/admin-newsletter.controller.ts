@@ -90,11 +90,28 @@ export class AdminNewsletterController {
   @Post('send')
   @Throttle({ default: { limit: 10, ttl: 3600000 } }) // 10 per hour
   @RequirePermissions({ resource: 'newsletter', action: 'create' })
-  @ApiOperation({ summary: '[Admin] Send newsletter to all subscribers' })
+  @ApiOperation({ summary: '[Admin] Send newsletter with fixed template and latest monuments' })
   @ApiResponse({ status: 200, description: 'Newsletter sent successfully' })
   @ApiResponse({ status: 400, description: 'No active subscribers found' })
   @ApiResponse({ status: 429, description: 'Too many requests - rate limit exceeded' })
   async sendNewsletter(
+    @CurrentUser() admin: AuthenticatedUser,
+  ) {
+    const result = await this.newsletterService.sendNewsletterWithTemplate(admin.id);
+    return {
+      data: result,
+      message: 'Newsletter sent successfully',
+    };
+  }
+
+  @Post('send-custom')
+  @Throttle({ default: { limit: 10, ttl: 3600000 } }) // 10 per hour
+  @RequirePermissions({ resource: 'newsletter', action: 'create' })
+  @ApiOperation({ summary: '[Admin] Send newsletter with custom content (advanced)' })
+  @ApiResponse({ status: 200, description: 'Newsletter sent successfully' })
+  @ApiResponse({ status: 400, description: 'No active subscribers found' })
+  @ApiResponse({ status: 429, description: 'Too many requests - rate limit exceeded' })
+  async sendCustomNewsletter(
     @Body() sendNewsletterDto: SendNewsletterDto,
     @CurrentUser() admin: AuthenticatedUser,
   ) {

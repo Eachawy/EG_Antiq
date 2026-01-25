@@ -43,6 +43,10 @@ WORKDIR /app
 # Copy everything from builder
 COPY --from=builder /app ./
 
+# Copy templates directory to the correct location for the compiled code
+# The compiled code at /app/dist/modules/newsletter/ looks for templates at /app/templates/
+COPY --from=builder /app/apps/api/templates ./templates
+
 # Set NODE_ENV
 ENV NODE_ENV=production
 

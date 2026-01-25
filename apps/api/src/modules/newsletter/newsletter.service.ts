@@ -1,16 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import * as crypto from 'crypto';
+import * as fs from 'fs';
+import * as path from 'path';
 import { PrismaService } from '../../common/services/prisma.service';
 import { EmailService } from '../../common/services/email.service';
 import { AppError } from '../../common/errors/base.error';
 import { SubscribeDto } from './dto/subscribe.dto';
 import { logger } from '../../logger';
+import { config } from '../../config';
 
 @Injectable()
 export class NewsletterService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly emailService: EmailService,
+    private readonly emailService: EmailService
   ) {}
 
   /**
@@ -57,7 +60,7 @@ export class NewsletterService {
     logger.info('Newsletter subscription completed immediately', { email, portalUserId });
 
     // Send welcome email (non-blocking - don't await)
-    this.emailService.sendNewsletterWelcome(email, unsubscribeToken).catch(err => {
+    this.emailService.sendNewsletterWelcome(email, unsubscribeToken).catch((err) => {
       logger.error('Failed to send welcome email', { email, error: err });
     });
 
@@ -265,7 +268,7 @@ export class NewsletterService {
       orderBy: { subscribedAt: 'desc' },
     });
 
-    const data = subscribers.map(sub => ({
+    const data = subscribers.map((sub) => ({
       Email: sub.email,
       'First Name': sub.portalUser?.firstName || '',
       'Last Name': sub.portalUser?.lastName || '',
@@ -280,12 +283,248 @@ export class NewsletterService {
   }
 
   /**
+   * Fetch latest 4 monuments for newsletter
+   */
+  private async getLatestMonuments() {
+    return this.prisma.monument.findMany({
+      take: 4,
+      orderBy: {
+        createdAt: 'desc',
+      },
+      include: {
+        monumentType: true,
+        era: true,
+        dynasty: true,
+      },
+    });
+  }
+
+  /**
+   * Generate HTML for monument card (email-compatible table layout)
+   */
+  private generateMonumentCardHtml(monument: any, baseUrl: string): string {
+    // Truncate name to 40 characters (with null check)
+    const rawName = monument.monumentNameEn || monument.monumentNameAr || 'Untitled Monument';
+    const nameEn = rawName.length > 30 ? rawName.substring(0, 27) + '...' : rawName;
+
+    // Truncate biography to 130 characters (with null check)
+    const rawBio =
+      monument.monumentBiographyEn || monument.monumentBiographyAr || 'No description available.';
+    const bioEn = rawBio.length > 113 ? rawBio.substring(0, 110) + '...' : rawBio;
+
+    // Construct image URL (with null check)
+    // Use a placeholder image service or Kemetra logo as fallback
+    const defaultImage = 'https://via.placeholder.com/760x400/c9a961/ffffff?text=Kemetra+Monument';
+
+    let imageUrl: string;
+    if (!monument.image) {
+      imageUrl = defaultImage;
+    } else if (monument.image.startsWith('http')) {
+      // Already a full URL
+      imageUrl = monument.image;
+    } else {
+      // Relative path - prepend baseUrl
+      const imagePath = monument.image.startsWith('/') ? monument.image : '/' + monument.image;
+      imageUrl = `${baseUrl}${imagePath}`;
+    }
+
+    // Format date
+    const dateStr = monument.createdAt
+      ? new Date(monument.createdAt).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        })
+      : '';
+
+    return `
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border: 1px solid #e5e5e5; border-radius: 8px; overflow: hidden; margin-bottom: 20px;">
+        <tr>
+          <td>
+            <img src="${imageUrl}" alt="${nameEn}" width="100%" height="200" style="display: block; object-fit: cover;" />
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 20px;">
+            <h3 style="margin: 0 0 10px 0; color: #2c3e50; font-size: 18px; font-weight: 600; line-height: 1.3;">
+              ${nameEn}
+            </h3>
+            <p style="margin: 0 0 15px 0; color: #666; font-size: 14px; line-height: 1.5;">
+              ${bioEn}
+            </p>
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td width="70%" style="color: #999; font-size: 13px;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar flex-shrink-0" aria-hidden="true"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path></svg> ${dateStr}
+                </td>
+                <td width="30%" align="right">
+                  <a href="${baseUrl}/en/sites/${monument.id}" style="color: #c9a961; text-decoration: none; font-size: 14px; font-weight: 500;">
+                    Explore →
+                  </a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>`;
+  }
+
+  /**
+   * Convert relative image URLs to absolute URLs in HTML content
+   */
+  private convertRelativeImagesToAbsolute(htmlContent: string, baseUrl: string): string {
+    let result = htmlContent;
+
+    // Replace relative image paths with absolute URLs
+    // Matches src="path" or src='path' where path doesn't start with http:// or https://
+    result = result.replace(/src=["'](?!https?:\/\/)([^"']+)["']/gi, (_match, imagePath) => {
+      // Clean up the path
+      const cleanPath = imagePath.trim().replace(/^\.\//, '').replace(/^\//, '');
+      // Construct absolute URL
+      const absoluteUrl = `${baseUrl}/${cleanPath}`;
+      return `src="${absoluteUrl}"`;
+    });
+
+    return result;
+  }
+
+  /**
+   * Replace monument cards placeholder with dynamic content
+   */
+  private async replaceDynamicMonumentCards(htmlContent: string, baseUrl: string): Promise<string> {
+    // Fetch latest monuments
+    const monuments = await this.getLatestMonuments();
+
+    // If no monuments available, return a placeholder message
+    if (monuments.length === 0) {
+      const noMonumentsMessage = `
+        <div style="text-align: center; padding: 40px; color: #666;">
+          <p style="font-size: 16px;">No monuments available at this time.</p>
+          <p style="font-size: 14px;">Check back soon for exciting new discoveries!</p>
+        </div>
+      `;
+
+      let result = htmlContent;
+      result = result.replace(/<!--\s*MONUMENT-CARDS\s*-->/gi, noMonumentsMessage);
+      result = result.replace(/\{\{\s*monument-cards\s*\}\}/gi, noMonumentsMessage);
+      result = result.replace(/\{\{\s*latest_monuments\s*\}\}/gi, noMonumentsMessage);
+      result = result.replace(
+        /<!--\s*START-MONUMENTS\s*-->[\s\S]*?<!--\s*END-MONUMENTS\s*-->/gi,
+        `<!-- START-MONUMENTS -->\n${noMonumentsMessage}\n<!-- END-MONUMENTS -->`
+      );
+      return result;
+    }
+
+    // Generate monument cards in a 2-column grid layout (email-compatible)
+    const monumentCardsRows: string[] = [];
+
+    for (let i = 0; i < monuments.length; i += 2) {
+      const leftCard = this.generateMonumentCardHtml(monuments[i], baseUrl);
+      const rightCard = monuments[i + 1]
+        ? this.generateMonumentCardHtml(monuments[i + 1], baseUrl)
+        : '<td width="48%"></td>'; // Empty cell if odd number
+
+      const row = `
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 20px;">
+          <tr>
+            <td width="48%" style="vertical-align: top;">
+              ${leftCard}
+            </td>
+            <td width="4%"></td>
+            <td width="48%" style="vertical-align: top;">
+              ${rightCard}
+            </td>
+          </tr>
+        </table>`;
+
+      monumentCardsRows.push(row);
+    }
+
+    const monumentCardsHtml = monumentCardsRows.join('\n');
+
+    // Replace placeholder with actual monument cards
+    let result = htmlContent;
+
+    // Format 1: HTML comment <!-- MONUMENT-CARDS -->
+    result = result.replace(/<!--\s*MONUMENT-CARDS\s*-->/gi, monumentCardsHtml);
+
+    // Format 2: Template variable {{monument-cards}}
+    result = result.replace(/\{\{\s*monument-cards\s*\}\}/gi, monumentCardsHtml);
+    result = result.replace(/\{\{\s*latest_monuments\s*\}\}/gi, monumentCardsHtml);
+
+    // Format 3: Replace content between start and end markers
+    result = result.replace(
+      /<!--\s*START-MONUMENTS\s*-->[\s\S]*?<!--\s*END-MONUMENTS\s*-->/gi,
+      `<!-- START-MONUMENTS -->\n${monumentCardsHtml}\n<!-- END-MONUMENTS -->`
+    );
+
+    return result;
+  }
+
+  /**
+   * Load the fixed newsletter template
+   */
+  private loadNewsletterTemplate(): string {
+    const templatePath = path.join(
+      __dirname,
+      '..',
+      '..',
+      '..',
+      'templates',
+      'newsletter-template.html'
+    );
+
+    try {
+      return fs.readFileSync(templatePath, 'utf-8');
+    } catch (error) {
+      logger.error('Failed to load newsletter template', { error });
+      throw new AppError('TEMPLATE_NOT_FOUND', 'Newsletter template not found', 500);
+    }
+  }
+
+  /**
+   * Send newsletter with fixed template (simplified admin workflow)
+   */
+  async sendNewsletterWithTemplate(adminUserId: string) {
+    // Load the fixed template
+    let template = this.loadNewsletterTemplate();
+
+    // Get current date for subject and template
+    const currentDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+    const subject = `Kemetra Newsletter - ${currentDate}`;
+    const content = 'Explore our latest archaeological discoveries';
+
+    // Replace date placeholder in template
+    template = template.replace(/\{\{newsletter_date\}\}/gi, currentDate);
+
+    // Use the existing sendNewsletter method with the template
+    return this.sendNewsletter(
+      {
+        subject,
+        content,
+        htmlContent: template,
+      },
+      adminUserId
+    );
+  }
+
+  /**
    * Send newsletter campaign to all subscribers (admin)
    */
   async sendNewsletter(
     campaign: { subject: string; content: string; htmlContent: string },
-    adminUserId: string,
+    adminUserId: string
   ) {
+    // Process HTML content
+    // Use FRONTEND_URL for public-facing links (not localhost which won't work in emails)
+    const baseUrl = config.FRONTEND_URL || config.API_URL || 'https://kemetra.org';
+
+    // Step 1: Convert relative image paths to absolute URLs
+    let processedHtmlContent = this.convertRelativeImagesToAbsolute(campaign.htmlContent, baseUrl);
+
+    // Step 2: Replace dynamic monument cards
+    processedHtmlContent = await this.replaceDynamicMonumentCards(processedHtmlContent, baseUrl);
+
     // Get all active subscribers
     const subscribers = await this.prisma.newsletterSubscription.findMany({
       where: { isSubscribed: true },
@@ -300,13 +539,13 @@ export class NewsletterService {
       throw new AppError('NO_SUBSCRIBERS', 'No active subscribers found', 400);
     }
 
-    // Create campaign record
+    // Create campaign record with processed HTML
     const newsletterCampaign = await this.prisma.newsletterCampaign.create({
       data: {
         id: crypto.randomUUID(),
         subject: campaign.subject,
         content: campaign.content,
-        htmlContent: campaign.htmlContent,
+        htmlContent: processedHtmlContent,
         sentBy: adminUserId,
         recipientCount: subscribers.length,
         status: 'SENDING',
@@ -327,7 +566,7 @@ export class NewsletterService {
             email: subscriber.email,
             subject: campaign.subject,
             content: campaign.content,
-            htmlContent: campaign.htmlContent,
+            htmlContent: processedHtmlContent,
             unsubscribeToken: subscriber.unsubscribeToken,
           });
 
@@ -364,7 +603,7 @@ export class NewsletterService {
       await Promise.allSettled(deliveryPromises);
 
       // Delay between batches
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
 
     // Update campaign status
@@ -442,8 +681,8 @@ export class NewsletterService {
       throw new AppError('NOT_FOUND', 'Campaign not found', 404);
     }
 
-    const successCount = campaign.deliveries.filter(d => d.deliveryStatus === 'SENT').length;
-    const failureCount = campaign.deliveries.filter(d => d.deliveryStatus === 'FAILED').length;
+    const successCount = campaign.deliveries.filter((d) => d.deliveryStatus === 'SENT').length;
+    const failureCount = campaign.deliveries.filter((d) => d.deliveryStatus === 'FAILED').length;
 
     return {
       ...campaign,
@@ -451,9 +690,8 @@ export class NewsletterService {
         total: campaign.deliveries.length,
         successCount,
         failureCount,
-        successRate: campaign.deliveries.length > 0
-          ? (successCount / campaign.deliveries.length) * 100
-          : 0,
+        successRate:
+          campaign.deliveries.length > 0 ? (successCount / campaign.deliveries.length) * 100 : 0,
       },
     };
   }
@@ -467,11 +705,11 @@ export class NewsletterService {
     }
 
     const headers = Object.keys(data[0]);
-    const rows = data.map(row => headers.map(h => row[h]));
+    const rows = data.map((row) => headers.map((h) => row[h]));
 
     const csvContent = [
       headers.join(','),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(',')),
+      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(',')),
     ].join('\n');
 
     return csvContent;

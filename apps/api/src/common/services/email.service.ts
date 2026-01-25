@@ -454,7 +454,8 @@ This is an automated notification from the contact form.
    * Send newsletter welcome email
    */
   async sendNewsletterWelcome(email: string, unsubscribeToken: string): Promise<void> {
-    const unsubscribeUrl = `${config.FRONTEND_URL}/newsletter/unsubscribe?token=${unsubscribeToken}`;
+    // Use API endpoint directly for unsubscribe (will work without frontend page)
+    const unsubscribeUrl = `${config.API_URL}/api/v1/portal/newsletter/unsubscribe?token=${unsubscribeToken}`;
 
     const mailOptions = {
       from: `"${config.EMAIL_FROM_NAME}" <${config.EMAIL_FROM}>`,
@@ -478,7 +479,9 @@ This is an automated notification from the contact form.
   async sendNewsletterCampaign(options: NewsletterCampaignOptions): Promise<void> {
     const { email, subject, content, htmlContent, unsubscribeToken } = options;
 
-    const unsubscribeUrl = `${config.FRONTEND_URL}/newsletter/unsubscribe?token=${unsubscribeToken}`;
+    // Use API endpoint directly for unsubscribe (will work without frontend page)
+    // Frontend can implement a nicer unsubscribe page at /newsletter/unsubscribe later
+    const unsubscribeUrl = `${config.API_URL}/api/v1/portal/newsletter/unsubscribe?token=${unsubscribeToken}`;
     const finalHtmlContent = this.addUnsubscribeLinkToNewsletter(htmlContent, unsubscribeUrl);
 
     const mailOptions = {
@@ -560,6 +563,15 @@ This is an automated notification from the contact form.
    * Add unsubscribe link to newsletter HTML content
    */
   private addUnsubscribeLinkToNewsletter(htmlContent: string, unsubscribeUrl: string): string {
+    // First, try to replace the {{unsubscribe_url}} placeholder if it exists
+    const result = htmlContent.replace(/\{\{unsubscribe_url\}\}/gi, unsubscribeUrl);
+
+    // If the placeholder was found and replaced, return the result
+    if (result !== htmlContent) {
+      return result;
+    }
+
+    // Otherwise, append the footer as a fallback (for legacy templates)
     const footer = `
     <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; font-size: 12px; color: #666;">
       <p>You're receiving this email because you subscribed to ${config.EMAIL_FROM_NAME} newsletter.</p>

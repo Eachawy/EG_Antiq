@@ -48,9 +48,22 @@ export class NewsletterController {
     };
   }
 
+  @Get('unsubscribe')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Unsubscribe from newsletter (GET for email links)' })
+  @ApiResponse({ status: 200, description: 'Unsubscribed successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid token' })
+  async unsubscribeGet(@Query('token') token: string) {
+    await this.newsletterService.unsubscribe(token);
+    return {
+      message: 'You have been successfully unsubscribed from our newsletter.',
+      success: true,
+    };
+  }
+
   @Post('unsubscribe')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Unsubscribe from newsletter' })
+  @ApiOperation({ summary: 'Unsubscribe from newsletter (POST for API calls)' })
   @ApiResponse({ status: 200, description: 'Unsubscribed successfully' })
   @ApiResponse({ status: 400, description: 'Invalid token' })
   async unsubscribe(@Query('token') token: string) {
