@@ -24,6 +24,19 @@ export interface ContactMessageNotificationOptions {
   createdAt: Date;
 }
 
+export interface NewsletterWelcomeOptions {
+  email: string;
+  unsubscribeToken: string;
+}
+
+export interface NewsletterCampaignOptions {
+  email: string;
+  subject: string;
+  content: string;
+  htmlContent: string;
+  unsubscribeToken: string;
+}
+
 @Injectable()
 export class EmailService {
   private transporter: nodemailer.Transporter;
@@ -435,6 +448,129 @@ This is an automated notification from the contact form.
 </body>
 </html>
     `.trim();
+  }
+
+  /**
+   * Send newsletter welcome email
+   */
+  async sendNewsletterWelcome(email: string, unsubscribeToken: string): Promise<void> {
+    const unsubscribeUrl = `${config.FRONTEND_URL}/newsletter/unsubscribe?token=${unsubscribeToken}`;
+
+    const mailOptions = {
+      from: `"${config.EMAIL_FROM_NAME}" <${config.EMAIL_FROM}>`,
+      to: email,
+      subject: 'Welcome to EG Antiq Newsletter',
+      html: this.getNewsletterWelcomeTemplate(unsubscribeUrl),
+      text: `Welcome to EG Antiq Newsletter! You've been successfully subscribed.\n\nUnsubscribe: ${unsubscribeUrl}`,
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      logger.info('Newsletter welcome email sent', { email });
+    } catch (error) {
+      logger.error('Failed to send newsletter welcome email', { email, error });
+    }
+  }
+
+  /**
+   * Send newsletter campaign email
+   */
+  async sendNewsletterCampaign(options: NewsletterCampaignOptions): Promise<void> {
+    const { email, subject, content, htmlContent, unsubscribeToken } = options;
+
+    const unsubscribeUrl = `${config.FRONTEND_URL}/newsletter/unsubscribe?token=${unsubscribeToken}`;
+    const finalHtmlContent = this.addUnsubscribeLinkToNewsletter(htmlContent, unsubscribeUrl);
+
+    const mailOptions = {
+      from: `"${config.EMAIL_FROM_NAME}" <${config.EMAIL_FROM}>`,
+      to: email,
+      subject: subject,
+      html: finalHtmlContent,
+      text: content + `\n\nUnsubscribe: ${unsubscribeUrl}`,
+    };
+
+    await this.transporter.sendMail(mailOptions);
+  }
+
+  /**
+   * HTML template for newsletter welcome email
+   */
+  private getNewsletterWelcomeTemplate(unsubscribeUrl: string): string {
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to EG Antiq Newsletter</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .container {
+      background-color: #f9f9f9;
+      border-radius: 8px;
+      padding: 30px;
+      margin: 20px 0;
+    }
+    .footer {
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #ddd;
+      font-size: 12px;
+      color: #666;
+    }
+    a {
+      color: #007bff;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Welcome to EG Antiq Newsletter!</h2>
+    <p>Thank you for subscribing to our newsletter. You'll receive updates about ancient Egyptian monuments, discoveries, and historical insights.</p>
+    <p>Our newsletters are sent monthly with curated content featuring:</p>
+    <ul>
+      <li>Monument of the Month deep-dives</li>
+      <li>Recent additions to our database</li>
+      <li>Historical spotlights on eras and dynasties</li>
+      <li>Fascinating facts about Ancient Egypt</li>
+    </ul>
+    <p>If you wish to unsubscribe at any time, click <a href="${unsubscribeUrl}">here</a>.</p>
+    <div class="footer">
+      <p>Best regards,<br>${config.EMAIL_FROM_NAME}</p>
+      <p style="color: #999;">This is an automated message, please do not reply to this email.</p>
+    </div>
+  </div>
+</body>
+</html>
+    `.trim();
+  }
+
+  /**
+   * Add unsubscribe link to newsletter HTML content
+   */
+  private addUnsubscribeLinkToNewsletter(htmlContent: string, unsubscribeUrl: string): string {
+    const footer = `
+    <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; font-size: 12px; color: #666;">
+      <p>You're receiving this email because you subscribed to ${config.EMAIL_FROM_NAME} newsletter.</p>
+      <p><a href="${unsubscribeUrl}" style="color: #007bff; text-decoration: none;">Unsubscribe</a></p>
+    </div>
+  `;
+
+    if (htmlContent.includes('</body>')) {
+      return htmlContent.replace('</body>', `${footer}</body>`);
+    }
+    return htmlContent + footer;
   }
 
   /**

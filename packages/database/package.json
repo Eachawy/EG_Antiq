@@ -20,10 +20,13 @@
     "@types/bcryptjs": "^2.4.6",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^2.4.3",
-    "dotenv": "^17.2.3"
+    "csv-writer": "^1.6.0",
+    "dotenv": "^17.2.3",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/node": "^20.10.6",
+    "@types/xlsx": "^0.0.36",
     "prisma": "^5.8.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"

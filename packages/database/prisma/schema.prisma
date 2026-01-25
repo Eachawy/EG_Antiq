@@ -352,6 +352,7 @@ model Monument {
   endDate             String?   @map("end_date") @db.VarChar
   startDateHijri      String?   @map("start_date_Hijri") @db.VarChar
   endDateHijri        String?   @map("end_date_Hijri") @db.VarChar
+  artifactRegistrationNumber String? @map("artifact_registration_number") @db.VarChar(100)
   monumentsTypeId     Int       @map("monuments_type_id")
   eraId               Int       @map("era_id")
   dynastyId           Int       @map("dynasty_id")
@@ -723,4 +724,49 @@ model NewsletterSubscription {
   @@index([email])
   @@index([isSubscribed])
   @@map("newsletter_subscriptions")
+}
+
+model NewsletterCampaign {
+  id             String               @id @default(uuid()) @db.Uuid
+  subject        String               @db.VarChar(500)
+  content        String               @db.Text
+  htmlContent    String?              @db.Text
+  sentBy         String               @db.Uuid
+  sentAt         DateTime             @default(now()) @db.Timestamptz
+  recipientCount Int                  @default(0)
+  status         NewsletterStatus     @default(DRAFT)
+  createdAt      DateTime             @default(now()) @db.Timestamptz
+  updatedAt      DateTime             @updatedAt @db.Timestamptz
+  deliveries     NewsletterDelivery[]
+
+  @@index([status])
+  @@index([sentAt])
+  @@map("newsletter_campaigns")
+}
+
+enum NewsletterStatus {
+  DRAFT
+  SENDING
+  SENT
+  FAILED
+}
+
+model NewsletterDelivery {
+  id              String         @id @default(uuid()) @db.Uuid
+  campaignId      String         @db.Uuid
+  campaign        NewsletterCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  subscriberEmail String         @db.VarChar(255)
+  sentAt          DateTime       @default(now()) @db.Timestamptz
+  deliveryStatus  DeliveryStatus @default(SENT)
+  errorMessage    String?        @db.Text
+
+  @@index([campaignId])
+  @@index([subscriberEmail])
+  @@map("newsletter_deliveries")
+}
+
+enum DeliveryStatus {
+  SENT
+  FAILED
+  BOUNCED
 }

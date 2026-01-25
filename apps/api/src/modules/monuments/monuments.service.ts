@@ -227,7 +227,7 @@ export class MonumentsService {
 
   /**
    * Import monuments from CSV file
-   * CSV columns: monumentNameAr,monumentNameEn,monumentBiographyAr,monumentBiographyEn,lat,lng,image,startDate,endDate,startDateHijri,endDateHijri,monumentsTypeId,eraId,dynastyId,zoom,center,descriptionEn,descriptionAr
+   * CSV columns: monumentNameAr,monumentNameEn,monumentBiographyAr,monumentBiographyEn,lat,lng,image,startDate,endDate,startDateHijri,endDateHijri,artifactRegistrationNumber,monumentsTypeId,eraId,dynastyId,zoom,center,descriptionEn,descriptionAr
    */
   async importFromCsv(file: Express.Multer.File) {
     try {
@@ -319,6 +319,11 @@ export class MonumentsService {
           if (record.endDateHijri && record.endDateHijri.trim()) {
             monumentData.endDateHijri = record.endDateHijri.trim();
             logger.info(`Adding endDateHijri for monument ${index + 1}: ${monumentData.endDateHijri}`);
+          }
+
+          // Add artifact registration number if provided
+          if (record.artifactRegistrationNumber && record.artifactRegistrationNumber.trim()) {
+            monumentData.artifactRegistrationNumber = record.artifactRegistrationNumber.trim();
           }
 
           // Add descriptions if provided

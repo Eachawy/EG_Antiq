@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsInt, IsArray, ValidateNested, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsInt, IsArray, ValidateNested, IsOptional, MaxLength } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { CreateGalleryItemDto } from './create-gallery-item.dto';
@@ -59,6 +59,15 @@ export class CreateMonumentDto {
   @IsString()
   @IsOptional()
   endDateHijri?: string;
+
+  @ApiPropertyOptional({
+    description: 'Artifact registration number',
+    example: 'SCA-2024-001'
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  artifactRegistrationNumber?: string;
 
   @ApiProperty({ description: 'Monument type ID', example: 1 })
   @IsInt()

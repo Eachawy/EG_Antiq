@@ -25,15 +25,14 @@ export class NewsletterController {
   @Post('subscribe')
   @Throttle({ default: { limit: 3, ttl: 60000 } }) // 3 requests per minute
   @ApiOperation({ summary: 'Subscribe to newsletter (public)' })
-  @ApiResponse({ status: 201, description: 'Subscription initiated successfully' })
+  @ApiResponse({ status: 201, description: 'Subscription completed successfully' })
   @ApiResponse({ status: 409, description: 'Email already subscribed' })
   @ApiResponse({ status: 429, description: 'Too many requests' })
   async subscribe(@Body() subscribeDto: SubscribeDto) {
     const result = await this.newsletterService.subscribe(subscribeDto);
     return {
       data: result,
-      message:
-        'Thank you for subscribing! Please check your email to verify your subscription.',
+      message: 'Thank you for subscribing! You will start receiving our newsletters.',
     };
   }
 
