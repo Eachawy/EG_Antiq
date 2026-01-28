@@ -336,3 +336,279 @@ PostgreSQL runs on port 5433 (non-standard) with credentials:
 - Password: `Antiq_dev`
 - Database: `Antiq_db`
 - Connection string: `postgresql://postgres:Antiq_dev@localhost:5433/Antiq_db`
+
+## Monument API Features
+
+### Nested Galleries and Descriptions
+
+The Monument API supports complete CRUD operations with nested management of galleries and description-monuments.
+
+**Key Features**:
+- Create monuments with galleries and descriptions in a single request
+- Update monuments and nested resources atomically (in a transaction)
+- Automatic cascade deletion of galleries and descriptions when monument is deleted
+
+**Monument Date Fields**:
+- `startDate` - Monument start date (Gregorian)
+- `endDate` - Monument end date (Gregorian, optional)
+- `startDateHijri` - Monument start date (Hijri)
+- `endDateHijri` - Monument end date (Hijri, optional)
+
+**Creating with Nested Data**:
+```typescript
+POST /api/v1/monuments
+{
+  "monumentNameAr": "قصر المصمك",
+  "monumentNameEn": "Al-Masmak Fort",
+  "monumentBiographyAr": "...",
+  "monumentBiographyEn": "...",
+  "lat": "24.6308",
+  "lng": "46.7143",
+  "image": "masmak-fort.jpg",
+  "startDate": "1895",
+  "monumentsTypeId": 1,
+  "eraId": 1,
+  "dynastyId": 1,
+  "galleries": [
+    { "galleryPath": "/images/exterior.jpg" },
+    { "galleryPath": "/images/interior.jpg" }
+  ],
+  "descriptions": [
+    {
+      "descriptionAr": "وصف بالعربية",
+      "descriptionEn": "Description in English"
+    }
+  ]
+}
+```
+
+**Update Behavior for Nested Arrays**:
+- Items with `id` → Updated
+- Items without `id` → Created
+- Existing items not in array → Deleted
+
+### API Field Names for Frontend Integration
+
+When building frontend tables/forms, use these exact field names from the API response:
+
+**Top-Level Monument Fields**:
+- `monumentNameAr` / `monumentNameEn` - Monument name
+- `monumentBiographyAr` / `monumentBiographyEn` - Biography
+- `lat` / `lng` - Coordinates (strings)
+- `image` - Main image path
+- `startDate` / `endDate` - Gregorian dates
+- `startDateHijri` / `endDateHijri` - Hijri dates
+- `monumentsTypeId` / `eraId` / `dynastyId` - Foreign keys
+- `zoom` / `center` - Map settings
+
+**Nested Related Objects** (use dot notation):
+- `monumentType.nameAr` / `monumentType.nameEn`
+- `era.nameAr` / `era.nameEn`
+- `dynasty.nameAr` / `dynasty.nameEn`
+
+Common mistake: Using `name`, `biography`, `latitude`, `longitude`, `date` will show "-" in tables.
+
+## Email Configuration
+
+### Email Service
+
+The application uses nodemailer for sending emails. Configure via environment variables:
+
+```bash
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_SECURE=false
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASSWORD=your-app-password
+EMAIL_FROM=noreply@yourcompany.com
+EMAIL_FROM_NAME=Your Company Name
+FRONTEND_URL=http://localhost:3000
+```
+
+**Email Providers Supported**:
+- Gmail (use App Password with 2FA)
+- SendGrid
+- AWS SES
+- Mailgun
+- Mailtrap (for development/testing)
+
+### Password Reset Flow
+
+**Step 1: Request Reset**
+```bash
+POST /api/v1/auth/request-reset-password
+{ "email": "user@example.com" }
+```
+
+**Step 2: User Receives Email**
+- Token is sent via email (not in API response in production)
+- Token valid for 1 hour
+- Token is hashed (SHA-256) before database storage
+
+**Step 3: Reset Password**
+```bash
+POST /api/v1/auth/reset-password
+{
+  "token": "token-from-email",
+  "newPassword": "newpassword123"
+}
+```
+
+**Security Features**:
+- Tokens expire after 1 hour
+- One-time use (cleared on successful reset)
+- All refresh tokens revoked on password change
+- Email enumeration prevention
+- Minimum 8 character password
+
+**Email Templates**:
+- Password reset email with clickable link
+- Password changed confirmation email
+
+## Newsletter System
+
+### Simple One-Click Newsletter
+
+The newsletter system automatically sends professionally formatted emails to all subscribers.
+
+**Admin Endpoint**:
+```bash
+POST /api/v1/admin/newsletter/send
+Authorization: Bearer YOUR_JWT_TOKEN
+# No request body needed - uses fixed template
+```
+
+**Features**:
+- Fetches latest 4 monuments from database
+- 2-column grid layout (email-compatible tables)
+- Professional HTML template
+- Automatic subject line: "Kemetra Newsletter - [Month Year]"
+
+**Template Location**: `/apps/api/templates/newsletter-template.html`
+**Logo Location**: `/apps/api/uploads/content/images/kemetraLogo.png`
+
+**Newsletter Includes**:
+- Company logo and header
+- Latest monuments with images
+- Monument details (name, description, date)
+- Footer with links and unsubscribe
+
+## Production Deployment
+
+### Hostinger VPS Deployment
+
+**Server Details** (if using Hostinger):
+- Server IP: 153.92.209.167
+- API URL: http://153.92.209.167:3000
+- Admin Frontend URL: http://153.92.209.167:3001
+
+**Quick Deployment**:
+```bash
+cd /root/EG_Antiq
+./scripts/deploy-hostinger.sh
+```
+
+### SSL and Domain Setup
+
+**For production domain (api.kemetra.org)**:
+
+1. Point domain to server IP
+2. Install SSL certificate:
+```bash
+sudo certbot certonly --standalone -d api.kemetra.org
+```
+
+3. Deploy Nginx configuration:
+```bash
+sudo cp nginx-configs/api.kemetra.org.conf /etc/nginx/sites-available/
+sudo ln -s /etc/nginx/sites-available/api.kemetra.org.conf /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+4. Start production containers:
+```bash
+docker compose -f docker-compose.production.yml --env-file .env.production up -d
+```
+
+### Production Environment Variables
+
+**Critical Production Settings**:
+- `DATABASE_PASSWORD` - Strong password (32+ chars)
+- `JWT_SECRET` - Unique secret (64+ chars, use `openssl rand -base64 64`)
+- `PORTAL_JWT_SECRET` - Different secret (64+ chars)
+- `API_URL` - Production API URL (https://api.kemetra.org)
+- `CORS_ORIGINS` - Comma-separated frontend URLs
+- `EMAIL_*` - Production email service credentials
+- OAuth credentials (GOOGLE_CLIENT_ID, etc.)
+
+### Database Backups
+
+**Manual Backup**:
+```bash
+docker compose -f docker-compose.production.yml exec postgres pg_dump -U postgres antiq_production > backup_$(date +%Y%m%d).sql
+```
+
+**Restore**:
+```bash
+docker compose -f docker-compose.production.yml exec -T postgres psql -U postgres antiq_production < backup_20260125.sql
+```
+
+**Automated Daily Backups** (cron):
+```bash
+0 2 * * * cd /root/EG_Antiq && docker compose -f docker-compose.production.yml exec postgres pg_dump -U postgres antiq_production > /root/backups/antiq_$(date +\%Y\%m\%d).sql
+```
+
+### Updating Production
+
+```bash
+# SSH into server
+cd /root/EG_Antiq
+
+# Pull latest code
+git pull origin main
+
+# Rebuild and restart
+docker compose -f docker-compose.production.yml --env-file .env.production up -d --build
+
+# Run migrations if schema changed
+docker compose -f docker-compose.production.yml exec api pnpm prisma:migrate:deploy
+```
+
+### CORS Configuration
+
+The Nginx configuration handles CORS for production. Allowed origins are configured in:
+- `nginx-configs/api.kemetra.org.conf` (lines 8-14)
+- `.env.production` (`CORS_ORIGINS` variable)
+
+**Testing CORS**:
+```bash
+curl -I -X OPTIONS https://api.kemetra.org/api/v1/auth/login \
+  -H "Origin: http://admin.kemetra.org" \
+  -H "Access-Control-Request-Method: POST"
+```
+
+## Troubleshooting
+
+### Common Issues
+
+**CORS Errors**:
+- Check Nginx config is loaded: `sudo nginx -t && sudo systemctl reload nginx`
+- Verify origin is in whitelist
+- Check browser console for specific CORS error
+
+**Email Not Sending**:
+- Check SMTP credentials
+- Try port 465 with `EMAIL_SECURE=true` if port 587 blocked
+- For Gmail, use App Password (not regular password)
+- Check logs for email service errors
+
+**Frontend Shows "-" for Monument Data**:
+- Verify using correct field names (see API Field Names section)
+- Check API response structure matches frontend mapping
+- Use nested dot notation for related objects (e.g., `monumentType.nameEn`)
+
+**Database Connection Failed**:
+- Check `DATABASE_URL` in .env
+- Verify PostgreSQL container is running: `docker compose ps`
+- Check port 5433 is not in use: `netstat -tlnp | grep 5433`
