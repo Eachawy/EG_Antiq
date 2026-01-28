@@ -36,11 +36,11 @@ services:
     networks:
       - app-network
 
-  # API Application
+  # API Application (Production Build)
   api:
     build:
       context: .
-      dockerfile: docker/api.Dockerfile
+      dockerfile: docker/api.prod.Dockerfile
       target: production
     container_name: backend-api
     env_file:
@@ -62,12 +62,11 @@ services:
       - app-network
     restart: unless-stopped
 
-  # API Development (optional - for hot reload)
+  # API Development (Hot Reload) - Use this for active development
   api-dev:
     build:
       context: .
-      dockerfile: docker/api.Dockerfile
-      target: builder
+      dockerfile: docker/api.dev.Dockerfile
     container_name: backend-api-dev
     env_file:
       - .env
@@ -83,10 +82,11 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      - ./apps/api/src:/app/src
-      - ./apps/api/prisma:/app/prisma
-    working_dir: /app
-    command: pnpm dev
+      - ./apps/api/src:/app/apps/api/src
+      - ./packages/database/prisma:/app/packages/database/prisma
+      - ./packages/common/src:/app/packages/common/src
+      - ./packages/logger/src:/app/packages/logger/src
+      - uploads_data:/app/uploads
     networks:
       - app-network
     profiles:
