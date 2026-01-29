@@ -94,8 +94,7 @@ services:
 
 networks:
   app-network:
-    external: true
-    name: eg_antiq_app-network
+    driver: bridge
 
 volumes:
   postgres_data:

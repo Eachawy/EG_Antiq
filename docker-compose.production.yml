@@ -3,6 +3,8 @@ services:
   postgres:
     image: postgres:15-alpine
     container_name: production-postgres
+    env_file:
+      - .env.production
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
@@ -39,6 +41,8 @@ services:
   redis:
     image: redis:7-alpine
     container_name: production-redis
+    env_file:
+      - .env.production
     command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
     ports:
       - '127.0.0.1:6379:6379' # Only localhost access
@@ -121,6 +125,8 @@ services:
       args:
         BACKEND_URL: https://api.kemetra.org
     container_name: production-admin
+    env_file:
+      - .env.production
     environment:
       NODE_ENV: production
       BACKEND_URL: https://api.kemetra.org  # For runtime nginx.conf replacement
@@ -155,6 +161,8 @@ services:
       context: ../EG_Antiq_portal
       dockerfile: Dockerfile
     container_name: production-portal
+    env_file:
+      - .env.production
     environment:
       NODE_ENV: production
       NEXT_PUBLIC_API_BASE_URL: https://api.kemetra.org/api/v1
@@ -185,6 +193,8 @@ services:
   nginx:
     image: nginx:1.27-alpine
     container_name: production-nginx-unified
+    env_file:
+      - .env.production
     ports:
       - '80:80'
       - '443:443'
