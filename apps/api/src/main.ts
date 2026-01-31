@@ -40,14 +40,15 @@ async function bootstrap() {
   );
 
   // CORS configuration
-  app.enableCors({
-    origin: config.CORS_ORIGINS,
-    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Correlation-ID', 'X-Request-ID'],
-    exposedHeaders: ['X-Correlation-ID', 'X-RateLimit-Remaining'],
-    credentials: true,
-    maxAge: 86400,
-  });
+  // DISABLED: CORS is handled by NGINX reverse proxy to avoid duplicate headers
+  // app.enableCors({
+  //   origin: config.CORS_ORIGINS,
+  //   methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+  //   allowedHeaders: ['Content-Type', 'Authorization', 'X-Correlation-ID', 'X-Request-ID'],
+  //   exposedHeaders: ['X-Correlation-ID', 'X-RateLimit-Remaining'],
+  //   credentials: true,
+  //   maxAge: 86400,
+  // });
 
   // Global prefix (exclude swagger docs)
   app.setGlobalPrefix('api/v1', {
