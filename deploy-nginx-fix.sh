@@ -177,8 +177,8 @@ if [ ! -f "/root/EG_Antiq_backend/nginx-configs/admin.kemetra.org.conf" ]; then
 fi
 
 # Copy Admin configuration
-cp /root/EG_Antiq_backend/nginx-configs/admin.kemetra.org.conf /etc/nginx/sites-available/
-print_status "Configuration copied to /etc/nginx/sites-available/"
+cp /root/EG_Antiq_backend/nginx-configs/admin.kemetra.org.conf /etc/nginx/conf.d/
+# print_status "Configuration copied to /etc/nginx/sites-available/"
 
 # Check if gateway Portal config exists
 if [ ! -f "/root/EG_Antiq_portal/nginx-configs/kemetra.org.conf" ]; then
@@ -188,8 +188,8 @@ if [ ! -f "/root/EG_Antiq_portal/nginx-configs/kemetra.org.conf" ]; then
 fi
 
 # Copy Admin configuration
-cp /root/EG_Antiq_portal/nginx-configs/kemetra.org.conf /etc/nginx/sites-available/
-print_status "Configuration copied to /etc/nginx/sites-available/"
+cp /root/EG_Antiq_portal/nginx-configs/kemetra.org.conf /etc/nginx/conf.d/
+# print_status "Configuration copied to /etc/nginx/sites-available/"
 
 # Remove default config if it exists
 if [ -f "/etc/nginx/sites-enabled/default" ]; then
