@@ -114,8 +114,8 @@ echo "Step 3: Installing/checking system NGINX..."
 
 if ! command -v nginx &> /dev/null; then
     print_warning "NGINX not found. Installing..."
-    apt update -qq
-    apt install nginx -y
+    dnf update -qq
+    dnf install nginx -y
     print_status "NGINX installed successfully"
 else
     print_status "NGINX already installed ($(nginx -v 2>&1 | cut -d'/' -f2))"
