@@ -40,15 +40,24 @@ async function bootstrap() {
   );
 
   // CORS configuration
-  // DISABLED: CORS is handled by NGINX reverse proxy to avoid duplicate headers
-  // app.enableCors({
-  //   origin: config.CORS_ORIGINS,
-  //   methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
-  //   allowedHeaders: ['Content-Type', 'Authorization', 'X-Correlation-ID', 'X-Request-ID'],
-  //   exposedHeaders: ['X-Correlation-ID', 'X-RateLimit-Remaining'],
-  //   credentials: true,
-  //   maxAge: 86400,
-  // });
+  // Explicitly whitelisted origins for security (no wildcard allowed with credentials)
+  app.enableCors({
+    origin: [
+      'https://kemetra.org',
+      'https://www.kemetra.org',
+      'https://admin.kemetra.org',
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://localhost:3002',
+      'http://localhost:9000',
+      'http://localhost:9001',
+    ],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Correlation-ID', 'X-Request-ID'],
+    exposedHeaders: ['X-Correlation-ID', 'X-RateLimit-Remaining'],
+    credentials: true,
+    maxAge: 86400, // 24 hours preflight cache
+  });
 
   // Global prefix (exclude swagger docs)
   app.setGlobalPrefix('api/v1', {
