@@ -198,7 +198,7 @@ if [ -f "/etc/nginx/sites-enabled/default" ]; then
 fi
 
 # Enable gateway configuration
-ln -sf /etc/nginx/sites-available/kemetra-gateway.conf /etc/nginx/sites-enabled/
+# ln -sf /etc/nginx/sites-available/kemetra-gateway.conf /etc/nginx/sites-enabled/
 print_status "Gateway configuration enabled"
 
 echo ""
