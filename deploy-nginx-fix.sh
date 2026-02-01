@@ -176,9 +176,12 @@ if [ ! -f "/root/EG_Antiq_backend/nginx-configs/admin.kemetra.org.conf" ]; then
     exit 1
 fi
 
+# Create sites-available and sites-enabled directories if they don't exist
+sudo mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
+
 # Copy Admin configuration
-cp /root/EG_Antiq_backend/nginx-configs/admin.kemetra.org.conf /etc/nginx/conf.d/
-# print_status "Configuration copied to /etc/nginx/sites-available/"
+cp /root/EG_Antiq_backend/nginx-configs/admin.kemetra.org.conf /etc/nginx/sites-available/
+print_status "Configuration copied to /etc/nginx/sites-available/"
 
 # Check if gateway Portal config exists
 if [ ! -f "/root/EG_Antiq_portal/nginx-configs/kemetra.org.conf" ]; then
@@ -188,8 +191,8 @@ if [ ! -f "/root/EG_Antiq_portal/nginx-configs/kemetra.org.conf" ]; then
 fi
 
 # Copy Admin configuration
-cp /root/EG_Antiq_portal/nginx-configs/kemetra.org.conf /etc/nginx/conf.d/
-# print_status "Configuration copied to /etc/nginx/sites-available/"
+cp /root/EG_Antiq_portal/nginx-configs/kemetra.org.conf /etc/nginx/sites-available/
+print_status "Configuration copied to /etc/nginx/sites-available/"
 
 # Remove default config if it exists
 if [ -f "/etc/nginx/sites-enabled/default" ]; then
@@ -198,7 +201,7 @@ if [ -f "/etc/nginx/sites-enabled/default" ]; then
 fi
 
 # Enable gateway configuration
-# ln -sf /etc/nginx/sites-available/kemetra-gateway.conf /etc/nginx/sites-enabled/
+ln -sf /etc/nginx/sites-available/kemetra-gateway.conf /etc/nginx/sites-enabled/
 print_status "Gateway configuration enabled"
 
 echo ""
