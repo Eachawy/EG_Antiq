@@ -1,0 +1,15 @@
+# Grafana Dashboard Provider Configuration
+
+apiVersion: 1
+
+providers:
+  - name: 'Kemetra Dashboards'
+    orgId: 1
+    folder: 'Kemetra'
+    type: file
+    disableDeletion: false
+    editable: true
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards

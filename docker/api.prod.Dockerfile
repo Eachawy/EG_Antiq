@@ -1,0 +1,122 @@
+# Production Dockerfile - Multi-stage build for optimized image size
+# Stage 1: Dependencies
+FROM node:20-alpine AS dependencies
+
+# Install OpenSSL for Prisma
+RUN apk add --no-cache openssl
+
+# Enable corepack and set pnpm version
+RUN corepack enable && corepack prepare pnpm@10.26.0 --activate
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files and configs
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.json ./
+COPY packages/database/package.json ./packages/database/
+COPY packages/common/package.json ./packages/common/
+COPY packages/logger/package.json ./packages/logger/
+COPY apps/api/package.json ./apps/api/
+
+# Copy Prisma schema before install (needed for postinstall script)
+COPY packages/database/prisma ./packages/database/prisma
+
+# Install dependencies (production only)
+RUN pnpm install --frozen-lockfile --prod
+
+# Install dev dependencies in separate layer for build stage
+FROM node:20-alpine AS build-dependencies
+
+# Install OpenSSL for Prisma
+RUN apk add --no-cache openssl
+
+# Enable corepack and set pnpm version
+RUN corepack enable && corepack prepare pnpm@10.26.0 --activate
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.json ./
+COPY packages/database/package.json ./packages/database/
+COPY packages/common/package.json ./packages/common/
+COPY packages/logger/package.json ./packages/logger/
+COPY apps/api/package.json ./apps/api/
+
+# Copy Prisma schema
+COPY packages/database/prisma ./packages/database/prisma
+
+# Install all dependencies (including dev dependencies for build)
+RUN pnpm install --frozen-lockfile
+
+# Stage 2: Build
+FROM build-dependencies AS builder
+
+WORKDIR /app
+
+# Copy all source code
+COPY packages/database ./packages/database
+COPY packages/common ./packages/common
+COPY packages/logger ./packages/logger
+COPY apps/api ./apps/api
+
+# Copy templates directory
+COPY apps/api/templates ./apps/api/templates
+
+# Build the application
+RUN pnpm --filter @app/api build
+
+# Generate Prisma Client
+RUN pnpm --filter @db/prisma prisma:generate
+
+# Stage 3: Runtime
+FROM node:20-alpine AS runtime
+
+# Install OpenSSL for Prisma
+RUN apk add --no-cache openssl curl
+
+# Enable corepack
+RUN corepack enable && corepack prepare pnpm@10.26.0 --activate
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nestjs -u 1001
+
+WORKDIR /app
+
+# Copy package files
+COPY --chown=nestjs:nodejs package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.json ./
+COPY --chown=nestjs:nodejs packages/database/package.json ./packages/database/
+COPY --chown=nestjs:nodejs packages/common/package.json ./packages/common/
+COPY --chown=nestjs:nodejs packages/logger/package.json ./packages/logger/
+COPY --chown=nestjs:nodejs apps/api/package.json ./apps/api/
+
+# Copy production dependencies from dependencies stage
+COPY --from=dependencies --chown=nestjs:nodejs /app/node_modules ./node_modules
+COPY --from=dependencies --chown=nestjs:nodejs /app/packages ./packages
+COPY --from=dependencies --chown=nestjs:nodejs /app/apps/api/node_modules ./apps/api/node_modules
+
+# Copy built application from builder stage
+COPY --from=builder --chown=nestjs:nodejs /app/apps/api/dist ./apps/api/dist
+COPY --from=builder --chown=nestjs:nodejs /app/packages/database/prisma ./packages/database/prisma
+
+# Copy templates directory (needed at runtime for emails)
+COPY --chown=nestjs:nodejs apps/api/templates ./apps/api/templates
+
+# Create uploads directory
+RUN mkdir -p /app/uploads && chown -R nestjs:nodejs /app/uploads
+
+# Set NODE_ENV to production
+ENV NODE_ENV=production
+
+# Switch to non-root user
+USER nestjs
+
+# Expose port
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+  CMD curl -f http://localhost:3000/api/v1/health || exit 1
+
+# Start the application
+CMD ["node", "apps/api/dist/main.js"]
