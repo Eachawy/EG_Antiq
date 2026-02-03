@@ -55,6 +55,10 @@ async function main() {
       description: 'Manage portal user saved searches',
     },
     { resource: 'portal-settings', action: 'manage', description: 'Manage portal user settings' },
+    // Newsletter management permissions
+    { resource: 'newsletter', action: 'read', description: 'View newsletter subscribers and campaigns' },
+    { resource: 'newsletter', action: 'create', description: 'Send newsletter campaigns' },
+    { resource: 'newsletter', action: 'delete', description: 'Remove newsletter subscribers' },
   ];
 
   for (const perm of permissions) {
