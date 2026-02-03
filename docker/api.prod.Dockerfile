@@ -101,7 +101,7 @@ COPY --from=builder --chown=nestjs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nestjs:nodejs /app/packages/database/prisma ./packages/database/prisma
 
 # Copy templates directory (needed at runtime for emails)
-COPY --chown=nestjs:nodejs apps/api/templates ./apps/api/templates
+COPY --chown=nestjs:nodejs apps/api/templates ./templates
 
 # Create uploads directory
 RUN mkdir -p /app/uploads && chown -R nestjs:nodejs /app/uploads

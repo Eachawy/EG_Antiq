@@ -30,7 +30,7 @@ COPY packages/logger ./packages/logger
 COPY apps/api ./apps/api
 
 # Copy templates directory
-COPY apps/api/templates ./apps/api/templates
+COPY apps/api/templates ./templates
 
 # Set NODE_ENV to development
 ENV NODE_ENV=development
