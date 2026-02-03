@@ -69,7 +69,7 @@ RUN pnpm --filter @app/api build
 RUN pnpm --filter @packages/database prisma:generate
 
 # Stage 3: Runtime
-FROM node:20-alpine AS runtime
+FROM node:20-alpine AS production
 
 # Install OpenSSL for Prisma
 RUN apk add --no-cache openssl curl

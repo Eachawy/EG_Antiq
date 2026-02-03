@@ -1,5 +1,5 @@
 # Development Dockerfile - Optimized for hot reload and debugging
-FROM node:20-alpine
+FROM node:20-alpine AS development
 
 # Install OpenSSL for Prisma
 RUN apk add --no-cache openssl

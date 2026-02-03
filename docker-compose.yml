@@ -67,6 +67,7 @@ services:
     build:
       context: .
       dockerfile: docker/api.dev.Dockerfile
+      target: development
     container_name: backend-api-dev
     env_file:
       - .env
