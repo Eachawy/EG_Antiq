@@ -28,7 +28,7 @@ export class NewsletterService {
     });
 
     if (existing && existing.isSubscribed) {
-      throw new AppError('ALREADY_SUBSCRIBED', 'This email is already subscribed', 409);
+      return { subscriptionId: existing.id, alreadySubscribed: true };
     }
 
     // Generate unsubscribe token only (no verification needed)
@@ -64,7 +64,7 @@ export class NewsletterService {
       logger.error('Failed to send welcome email', { email, error: err });
     });
 
-    return { subscriptionId: subscription.id };
+    return { subscriptionId: subscription.id, alreadySubscribed: false };
   }
 
   /**
