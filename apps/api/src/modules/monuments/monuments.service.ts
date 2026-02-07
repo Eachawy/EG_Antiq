@@ -126,7 +126,7 @@ export class MonumentsService {
    */
   async update(id: number, updateMonumentDto: UpdateMonumentDto) {
     // Check if monument exists
-    const existing = await this.findOne(id);
+    await this.findOne(id);
 
     const { galleries, descriptions, slugEn, slugAr, ...monumentData } = updateMonumentDto;
 
