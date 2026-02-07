@@ -69,6 +69,24 @@ export class CreateMonumentDto {
   @MaxLength(100)
   artifactRegistrationNumber?: string;
 
+  @ApiPropertyOptional({
+    description: 'Custom English slug (auto-generated from monumentNameEn if not provided)',
+    example: 'karnak-temple'
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(255)
+  slugEn?: string;
+
+  @ApiPropertyOptional({
+    description: 'Custom Arabic slug (auto-generated from monumentNameAr if not provided)',
+    example: 'maebd-alkrnk'
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(255)
+  slugAr?: string;
+
   @ApiProperty({ description: 'Monument type ID', example: 1 })
   @IsInt()
   monumentsTypeId: number;

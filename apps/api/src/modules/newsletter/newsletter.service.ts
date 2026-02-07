@@ -8,6 +8,7 @@ import { AppError } from '../../common/errors/base.error';
 import { SubscribeDto } from './dto/subscribe.dto';
 import { logger } from '../../logger';
 import { config } from '../../config';
+import { buildMonumentUrl } from '@packages/common';
 
 @Injectable()
 export class NewsletterService {
@@ -358,7 +359,7 @@ export class NewsletterService {
                    ${dateStr}
                 </td>
                 <td width="30%" align="right">
-                  <a href="${frontendUrl}/en/sites/${monument.id}" style="color: #c9a961; text-decoration: none; font-size: 14px; font-weight: 500;">
+                  <a href="${buildMonumentUrl(monument.id, monument.slugEn || '', 'en', frontendUrl)}" style="color: #c9a961; text-decoration: none; font-size: 14px; font-weight: 500;">
                     Explore →
                   </a>
                 </td>
