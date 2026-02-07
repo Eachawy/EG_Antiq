@@ -9,6 +9,7 @@ export * from './types';
 export * from './utils/crypto';
 export * from './utils/date';
 export * from './utils/string';
+export * from './utils/slug';
 
 // Constants
 export * from './constants';

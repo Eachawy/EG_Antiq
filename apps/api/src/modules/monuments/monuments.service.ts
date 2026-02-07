@@ -5,6 +5,7 @@ import { CreateMonumentDto } from './dto/create-monument.dto';
 import { UpdateMonumentDto } from './dto/update-monument.dto';
 import { parse } from 'csv-parse/sync';
 import { logger } from '../../logger';
+import { generateMonumentSlugs, ensureUniqueSlug, generateEnglishSlug, generateArabicSlug } from '@packages/common';
 
 @Injectable()
 export class MonumentsService {
@@ -53,13 +54,36 @@ export class MonumentsService {
    * Create a new monument with nested galleries and descriptions
    */
   async create(createMonumentDto: CreateMonumentDto) {
-    const { galleries, descriptions, ...monumentData } = createMonumentDto;
+    const { galleries, descriptions, slugEn, slugAr, ...monumentData } = createMonumentDto;
+
+    // Generate slugs if not provided
+    const generatedSlugs = generateMonumentSlugs(
+      monumentData.monumentNameEn,
+      monumentData.monumentNameAr
+    );
+
+    // Ensure uniqueness
+    const finalSlugEn = await ensureUniqueSlug(
+      slugEn || generatedSlugs.slugEn,
+      'en',
+      undefined,
+      this.prisma
+    );
+
+    const finalSlugAr = await ensureUniqueSlug(
+      slugAr || generatedSlugs.slugAr,
+      'ar',
+      undefined,
+      this.prisma
+    );
 
     // Provide default values for optional fields
     const monumentDataWithDefaults = {
       ...monumentData,
       image: monumentData.image || '',
       startDate: monumentData.startDate || new Date().toISOString().split('T')[0], // Use current date as default
+      slugEn: finalSlugEn,
+      slugAr: finalSlugAr,
     };
 
     return this.prisma.monument.create({
@@ -102,15 +126,33 @@ export class MonumentsService {
    */
   async update(id: number, updateMonumentDto: UpdateMonumentDto) {
     // Check if monument exists
-    await this.findOne(id);
+    const existing = await this.findOne(id);
 
-    const { galleries, descriptions, ...monumentData } = updateMonumentDto;
+    const { galleries, descriptions, slugEn, slugAr, ...monumentData } = updateMonumentDto;
+
+    // Regenerate slugs if name changed and custom slug not provided
+    let updatedSlugEn = slugEn;
+    let updatedSlugAr = slugAr;
+
+    if (monumentData.monumentNameEn && !slugEn) {
+      const generated = generateEnglishSlug(monumentData.monumentNameEn);
+      updatedSlugEn = await ensureUniqueSlug(generated, 'en', id, this.prisma);
+    }
+
+    if (monumentData.monumentNameAr && !slugAr) {
+      const generated = generateArabicSlug(monumentData.monumentNameAr);
+      updatedSlugAr = await ensureUniqueSlug(generated, 'ar', id, this.prisma);
+    }
 
     return this.prisma.$transaction(async (tx) => {
       // Update monument basic fields
       const updated = await tx.monument.update({
         where: { id },
-        data: monumentData,
+        data: {
+          ...monumentData,
+          ...(updatedSlugEn && { slugEn: updatedSlugEn }),
+          ...(updatedSlugAr && { slugAr: updatedSlugAr }),
+        },
       });
 
       // Handle galleries if provided

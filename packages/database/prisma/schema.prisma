@@ -359,6 +359,8 @@ model Monument {
   zoom                String    @db.VarChar
   center              String    @db.VarChar
   createdAt           DateTime? @default(now()) @map("created_at") @db.Timestamp
+  slugEn              String?   @map("slug_en") @db.VarChar(255)
+  slugAr              String?   @map("slug_ar") @db.VarChar(255)
 
   // Relations
   monumentType          MonumentType          @relation(fields: [monumentsTypeId], references: [id])
@@ -372,6 +374,8 @@ model Monument {
   favorites             Favorite[]
   browsingHistory       BrowsingHistory[]
 
+  @@index([slugEn])
+  @@index([slugAr])
   @@map("monuments")
 }
 

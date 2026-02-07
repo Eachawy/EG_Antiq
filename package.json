@@ -18,6 +18,7 @@
     "prisma:migrate:deploy": "pnpm --filter @packages/database prisma migrate deploy",
     "prisma:studio": "pnpm --filter @packages/database prisma studio",
     "prisma:seed": "pnpm --filter @packages/database prisma db seed",
+    "prisma:populate-slugs": "ts-node -r tsconfig-paths/register packages/database/scripts/populate-slugs.ts",
     "docker:build": "docker compose build",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
@@ -47,5 +48,8 @@
       "eslint --fix",
       "prettier --write"
     ]
+  },
+  "dependencies": {
+    "@sindresorhus/transliterate": "^2.3.1"
   }
 }

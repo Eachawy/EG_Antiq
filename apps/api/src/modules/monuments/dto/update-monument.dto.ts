@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsInt, IsArray, ValidateNested } from 'class-validator';
+import { IsString, IsOptional, IsInt, IsArray, ValidateNested, MaxLength } from 'class-validator';
 import { Type } from 'class-transformer';
 import { UpdateGalleryItemDto } from './update-gallery-item.dto';
 import { UpdateDescriptionItemDto } from './update-description-item.dto';
@@ -51,6 +51,16 @@ export class UpdateMonumentDto {
   @IsString()
   @IsOptional()
   artifactRegistrationNumber?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(255)
+  slugEn?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(255)
+  slugAr?: string;
 
   @IsInt()
   @IsOptional()

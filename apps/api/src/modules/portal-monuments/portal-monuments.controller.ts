@@ -4,6 +4,7 @@ import { Request } from 'express';
 import { PortalMonumentsService } from './portal-monuments.service';
 import { SearchFiltersDto } from './dto/search-filters.dto';
 import { Public } from '../auth/decorators/public.decorator';
+import { parseMonumentUrl } from '@packages/common';
 
 @ApiTags('Portal Monuments')
 @Controller('portal/monuments')
@@ -45,14 +46,17 @@ export class PortalMonumentsController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get monument details by ID (PUBLIC)' })
+  @ApiOperation({ summary: 'Get monument details by ID or ID-slug (PUBLIC)' })
   @ApiResponse({ status: 200, description: 'Monument details retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Monument not found' })
-  async getById(@Param('id') id: string, @Req() req: Request) {
+  async getById(@Param('id') idOrSlug: string, @Req() req: Request) {
     // Extract portal user from JWT if present (optional authentication)
     const portalUserId = (req.user as any)?.id;
 
-    const monument = await this.portalMonumentsService.getById(parseInt(id), portalUserId);
+    // Parse ID from "21" or "21-slug" format
+    const { id } = parseMonumentUrl(idOrSlug);
+
+    const monument = await this.portalMonumentsService.getById(id, portalUserId);
     return {
       data: monument,
       message: 'Monument details retrieved successfully',
