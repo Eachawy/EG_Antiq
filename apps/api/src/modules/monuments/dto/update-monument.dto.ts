@@ -48,6 +48,10 @@ export class UpdateMonumentDto {
   @IsOptional()
   endDateHijri?: string;
 
+  @IsString()
+  @IsOptional()
+  artifactRegistrationNumber?: string;
+
   @IsInt()
   @IsOptional()
   monumentsTypeId?: number;

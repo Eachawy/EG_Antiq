@@ -71,8 +71,8 @@ RUN pnpm --filter @packages/database prisma:generate
 # Stage 3: Runtime
 FROM node:20-alpine AS production
 
-# Install OpenSSL for Prisma
-RUN apk add --no-cache openssl curl
+# Install OpenSSL for Prisma, curl for healthcheck, and su-exec for user switching
+RUN apk add --no-cache openssl curl su-exec
 
 # Enable corepack
 RUN corepack enable && corepack prepare pnpm@10.26.0 --activate
@@ -103,6 +103,10 @@ COPY --from=builder --chown=nestjs:nodejs /app/packages/database/prisma ./packag
 # Copy templates directory (needed at runtime for emails)
 COPY --chown=nestjs:nodejs apps/api/templates ./templates
 
+# Copy and set up entrypoint script (must be owned by root to fix permissions)
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 # Create uploads directory
 RUN mkdir -p /app/uploads && chown -R nestjs:nodejs /app/uploads
 
@@ -111,9 +115,6 @@ ENV NODE_ENV=production
 # pnpm workspace: dist is at root but deps are in apps/api/node_modules
 ENV NODE_PATH=/app/apps/api/node_modules
 
-# Switch to non-root user
-USER nestjs
-
 # Expose port
 EXPOSE 3000
 
@@ -121,5 +122,9 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
   CMD curl -f http://localhost:3000/api/v1/health || exit 1
 
+# Use entrypoint script to fix permissions before starting app
+ENTRYPOINT ["/entrypoint.sh"]
+
 # Start the application (dist is at root level)
-CMD ["node", "dist/main.js"]
+# Note: Container starts as root, entrypoint fixes permissions, then switches to nestjs user
+CMD ["su-exec", "nestjs", "node", "dist/main.js"]

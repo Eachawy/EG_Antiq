@@ -302,7 +302,7 @@ export class NewsletterService {
   /**
    * Generate HTML for monument card (email-compatible table layout)
    */
-  private generateMonumentCardHtml(monument: any, baseUrl: string): string {
+  private generateMonumentCardHtml(monument: any, frontendUrl: string, apiUrl: string): string {
     // Truncate name to 40 characters (with null check)
     const rawName = monument.monumentNameEn || monument.monumentNameAr || 'Untitled Monument';
     const nameEn = rawName.length > 30 ? rawName.substring(0, 27) + '...' : rawName;
@@ -323,9 +323,9 @@ export class NewsletterService {
       // Already a full URL
       imageUrl = monument.image;
     } else {
-      // Relative path - prepend baseUrl
+      // Relative path - images are served by API, so use apiUrl
       const imagePath = monument.image.startsWith('/') ? monument.image : '/' + monument.image;
-      imageUrl = `${baseUrl}${imagePath}`;
+      imageUrl = `${apiUrl}${imagePath}`;
     }
 
     // Format date
@@ -358,7 +358,7 @@ export class NewsletterService {
                    ${dateStr}
                 </td>
                 <td width="30%" align="right">
-                  <a href="${baseUrl}/en/sites/${monument.id}" style="color: #c9a961; text-decoration: none; font-size: 14px; font-weight: 500;">
+                  <a href="${frontendUrl}/en/sites/${monument.id}" style="color: #c9a961; text-decoration: none; font-size: 14px; font-weight: 500;">
                     Explore →
                   </a>
                 </td>
@@ -391,7 +391,7 @@ export class NewsletterService {
   /**
    * Replace monument cards placeholder with dynamic content
    */
-  private async replaceDynamicMonumentCards(htmlContent: string, baseUrl: string): Promise<string> {
+  private async replaceDynamicMonumentCards(htmlContent: string, frontendUrl: string, apiUrl: string): Promise<string> {
     // Fetch latest monuments
     const monuments = await this.getLatestMonuments();
 
@@ -419,9 +419,9 @@ export class NewsletterService {
     const monumentCardsRows: string[] = [];
 
     for (let i = 0; i < monuments.length; i += 2) {
-      const leftCard = this.generateMonumentCardHtml(monuments[i], baseUrl);
+      const leftCard = this.generateMonumentCardHtml(monuments[i], frontendUrl, apiUrl);
       const rightCard = monuments[i + 1]
-        ? this.generateMonumentCardHtml(monuments[i + 1], baseUrl)
+        ? this.generateMonumentCardHtml(monuments[i + 1], frontendUrl, apiUrl)
         : '<td width="48%"></td>'; // Empty cell if odd number
 
       const row = `
@@ -518,14 +518,16 @@ export class NewsletterService {
     adminUserId: string
   ) {
     // Process HTML content
-    // Use FRONTEND_URL for public-facing links (not localhost which won't work in emails)
-    const baseUrl = config.FRONTEND_URL || config.API_URL || 'https://kemetra.org';
+    // Use FRONTEND_URL for monument detail page links
+    const frontendUrl = config.FRONTEND_URL || 'https://kemetra.org';
+    // Use API_URL for serving images (since images are served by API at /uploads/)
+    const apiUrl = config.API_URL || 'http://localhost:3000';
 
-    // Step 1: Convert relative image paths to absolute URLs
-    let processedHtmlContent = this.convertRelativeImagesToAbsolute(campaign.htmlContent, baseUrl);
+    // Step 1: Convert relative image paths to absolute URLs (using API URL for images)
+    let processedHtmlContent = this.convertRelativeImagesToAbsolute(campaign.htmlContent, apiUrl);
 
     // Step 2: Replace dynamic monument cards
-    processedHtmlContent = await this.replaceDynamicMonumentCards(processedHtmlContent, baseUrl);
+    processedHtmlContent = await this.replaceDynamicMonumentCards(processedHtmlContent, frontendUrl, apiUrl);
 
     // Get all active subscribers
     const subscribers = await this.prisma.newsletterSubscription.findMany({
