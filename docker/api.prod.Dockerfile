@@ -125,6 +125,6 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
 # Use entrypoint script to fix permissions before starting app
 ENTRYPOINT ["/entrypoint.sh"]
 
-# Start the application (dist is at root level)
+# Start the application (dist contains workspace structure)
 # Note: Container starts as root, entrypoint fixes permissions, then switches to nestjs user
-CMD ["su-exec", "nestjs", "node", "dist/main.js"]
+CMD ["su-exec", "nestjs", "node", "dist/apps/api/src/main.js"]
