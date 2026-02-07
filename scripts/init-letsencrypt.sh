@@ -11,7 +11,7 @@ domains=(
 )
 rsa_key_size=4096
 data_path="./certbot"
-email="your-email@example.com" # Change this!
+email="info@kemetra.org" # Change this!
 staging=0 # Set to 1 for testing
 
 # Color codes for output
