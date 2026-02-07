@@ -21,8 +21,8 @@ COPY apps/api/package.json ./apps/api/
 # Copy Prisma schema before install (needed for postinstall script)
 COPY packages/database/prisma ./packages/database/prisma
 
-# Install dependencies (production only)
-RUN pnpm install --frozen-lockfile --prod
+# Install dependencies (includes dev deps needed for postinstall scripts)
+RUN pnpm install --frozen-lockfile
 
 # Install dev dependencies in separate layer for build stage
 FROM node:20-alpine AS build-dependencies
@@ -66,7 +66,7 @@ COPY apps/api/templates ./apps/api/templates
 RUN pnpm --filter @app/api build
 
 # Generate Prisma Client
-RUN pnpm --filter @db/prisma prisma:generate
+RUN pnpm --filter @packages/database prisma:generate
 
 # Stage 3: Runtime
 FROM node:20-alpine AS runtime
@@ -90,13 +90,14 @@ COPY --chown=nestjs:nodejs packages/common/package.json ./packages/common/
 COPY --chown=nestjs:nodejs packages/logger/package.json ./packages/logger/
 COPY --chown=nestjs:nodejs apps/api/package.json ./apps/api/
 
-# Copy production dependencies from dependencies stage
-COPY --from=dependencies --chown=nestjs:nodejs /app/node_modules ./node_modules
-COPY --from=dependencies --chown=nestjs:nodejs /app/packages ./packages
-COPY --from=dependencies --chown=nestjs:nodejs /app/apps/api/node_modules ./apps/api/node_modules
+# Copy full workspace from builder (pnpm symlinks need the complete structure)
+COPY --from=builder --chown=nestjs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nestjs:nodejs /app/packages/common ./packages/common
+COPY --from=builder --chown=nestjs:nodejs /app/packages/logger ./packages/logger
+COPY --from=builder --chown=nestjs:nodejs /app/apps/api/node_modules ./apps/api/node_modules
 
-# Copy built application from builder stage
-COPY --from=builder --chown=nestjs:nodejs /app/apps/api/dist ./apps/api/dist
+# Copy built application from builder stage (NestJS outputs to root /app/dist)
+COPY --from=builder --chown=nestjs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nestjs:nodejs /app/packages/database/prisma ./packages/database/prisma
 
 # Copy templates directory (needed at runtime for emails)
@@ -107,6 +108,8 @@ RUN mkdir -p /app/uploads && chown -R nestjs:nodejs /app/uploads
 
 # Set NODE_ENV to production
 ENV NODE_ENV=production
+# pnpm workspace: dist is at root but deps are in apps/api/node_modules
+ENV NODE_PATH=/app/apps/api/node_modules
 
 # Switch to non-root user
 USER nestjs
@@ -118,5 +121,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
   CMD curl -f http://localhost:3000/api/v1/health || exit 1
 
-# Start the application
-CMD ["node", "apps/api/dist/main.js"]
+# Start the application (dist is at root level)
+CMD ["node", "dist/main.js"]
