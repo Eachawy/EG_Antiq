@@ -8,7 +8,7 @@ import { AppError } from '../../common/errors/base.error';
 import { SubscribeDto } from './dto/subscribe.dto';
 import { logger } from '../../logger';
 import { config } from '../../config';
-import { buildMonumentUrl } from '@packages/common';
+import { buildMonumentUrl } from '../../../../packages/common/src/utils/slug';
 
 @Injectable()
 export class NewsletterService {
