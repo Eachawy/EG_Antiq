@@ -62,6 +62,9 @@ COPY apps/api ./apps/api
 # Copy templates directory
 COPY apps/api/templates ./apps/api/templates
 
+# Build common package first (API depends on it)
+RUN pnpm --filter @packages/common build
+
 # Build the application
 RUN pnpm --filter @app/api build
 
