@@ -8,7 +8,7 @@ import { AppError } from '../../common/errors/base.error';
 import { SubscribeDto } from './dto/subscribe.dto';
 import { logger } from '../../logger';
 import { config } from '../../config';
-import { buildMonumentUrl } from '../../../../../packages/common/src/utils/slug';
+import { buildMonumentUrl } from '../../../../../packages/common/src';
 
 @Injectable()
 export class NewsletterService {
@@ -466,8 +466,14 @@ export class NewsletterService {
    * Load the fixed newsletter template
    */
   private loadNewsletterTemplate(): string {
+    // In production Docker: compiled code is at /app/dist/apps/api/src/modules/newsletter/
+    // Templates are at /app/templates/
+    // Need to go up 6 levels: newsletter/ -> modules/ -> src/ -> api/ -> apps/ -> dist/ -> app/
     const templatePath = path.join(
       __dirname,
+      '..',
+      '..',
+      '..',
       '..',
       '..',
       '..',
@@ -478,7 +484,7 @@ export class NewsletterService {
     try {
       return fs.readFileSync(templatePath, 'utf-8');
     } catch (error) {
-      logger.error('Failed to load newsletter template', { error });
+      logger.error('Failed to load newsletter template', { error, templatePath });
       throw new AppError('TEMPLATE_NOT_FOUND', 'Newsletter template not found', 500);
     }
   }
