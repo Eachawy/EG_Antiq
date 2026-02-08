@@ -5,7 +5,7 @@ import { CreateMonumentDto } from './dto/create-monument.dto';
 import { UpdateMonumentDto } from './dto/update-monument.dto';
 import { parse } from 'csv-parse/sync';
 import { logger } from '../../logger';
-import { generateMonumentSlugs, ensureUniqueSlug, generateEnglishSlug, generateArabicSlug } from '@packages/common';
+import { generateMonumentSlugs, ensureUniqueSlug, generateEnglishSlug, generateArabicSlug } from '../../../../../packages/common/src';
 
 @Injectable()
 export class MonumentsService {

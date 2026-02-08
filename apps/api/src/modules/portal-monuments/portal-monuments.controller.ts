@@ -4,7 +4,7 @@ import { Request } from 'express';
 import { PortalMonumentsService } from './portal-monuments.service';
 import { SearchFiltersDto } from './dto/search-filters.dto';
 import { Public } from '../auth/decorators/public.decorator';
-import { parseMonumentUrl } from '@packages/common';
+import { parseMonumentUrl } from '../../../../../packages/common/src';
 
 @ApiTags('Portal Monuments')
 @Controller('portal/monuments')
